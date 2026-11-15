@@ -376,10 +376,8 @@ export default function SidebarDashboard() {
           {activeTab === 'rules' && (
             <div className="space-y-4 animate-in fade-in duration-150">
               <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-sm font-mono font-semibold uppercase text-zinc-200">Active WAF Signatures ({SQL_PATTERNS.length})</h2>
-                  <p className="text-xs text-zinc-500">Deterministic regular expression rules evaluated at Cloudflare edge runtime</p>
-                </div>
+                <h2 className="text-sm font-mono font-semibold uppercase text-zinc-200">Active WAF Signatures ({SQL_PATTERNS.length})</h2>
+                <span className="text-[11px] font-mono text-emerald-400">DETERMINISTIC EVALUATION</span>
               </div>
 
               <div className="grid gap-3">
@@ -430,10 +428,7 @@ export default function SidebarDashboard() {
           {/* TAB 3: PAYLOAD DISPATCHER */}
           {activeTab === 'dispatcher' && (
             <div className="space-y-6 max-w-3xl animate-in fade-in duration-150">
-              <div>
-                <h2 className="text-sm font-mono font-semibold uppercase text-zinc-200">Interactive Payload Dispatcher</h2>
-                <p className="text-xs text-zinc-500">Manually craft HTTP requests to evaluate WAF verdict and query parameter handling</p>
-              </div>
+              <h2 className="text-sm font-mono font-semibold uppercase text-zinc-200">In-Line Payload Dispatcher</h2>
 
               {/* Quick Preset Buttons */}
               <div className="space-y-1.5">
@@ -542,10 +537,7 @@ export default function SidebarDashboard() {
           {/* TAB 4: MITIGATION SPECS */}
           {activeTab === 'mitigation' && (
             <div className="space-y-6 max-w-4xl animate-in fade-in duration-150">
-              <div>
-                <h2 className="text-sm font-mono font-semibold uppercase text-zinc-200">Mitigation Architecture: Prepared Statements</h2>
-                <p className="text-xs text-zinc-500">Technical comparison showing how parameterized queries prevent SQL injection at the AST compiler layer</p>
-              </div>
+              <h2 className="text-sm font-mono font-semibold uppercase text-zinc-200">Mitigation Architecture: Prepared Statements</h2>
 
               {/* App selector */}
               <div className="flex rounded-md border border-zinc-800 bg-zinc-900 p-0.5 text-xs font-mono w-fit">
