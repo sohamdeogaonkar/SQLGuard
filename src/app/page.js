@@ -107,9 +107,6 @@ export default function SidebarDashboard() {
   // Lexer workbench input state
   const [lexerInput, setLexerInput] = useState("admin'/**/OR/**/1=1#");
 
-  // Mitigation state
-  const [mitApp, setMitApp] = useState('ApexPortal');
-
   const searchInputRef = useRef(null);
 
   const refreshData = () => {
@@ -142,9 +139,7 @@ export default function SidebarDashboard() {
       } else if (!isInput) {
         if (e.key === '1') setActiveTab('traffic');
         if (e.key === '2') setActiveTab('simulator');
-        if (e.key === '3') setActiveTab('lexer');
-        if (e.key === '4') setActiveTab('benchmark');
-        if (e.key === '5') setActiveTab('mitigation');
+        if (e.key === '3') setActiveTab('research');
       }
     };
 
@@ -190,10 +185,8 @@ export default function SidebarDashboard() {
             <span className="font-mono text-xs text-zinc-500 uppercase tracking-wider">CONSOLE /</span>
             <span className="text-xs font-semibold text-zinc-200 uppercase font-mono">
               {activeTab === 'traffic' && 'LIVE TRAFFIC STREAM'}
-              {activeTab === 'simulator' && 'INTERACTIVE SQL INJECTION ANATOMY & AST SIMULATOR'}
-              {activeTab === 'lexer' && 'LEXICAL TOKENIZER & AST GRAMMAR ENGINE'}
-              {activeTab === 'benchmark' && 'ADVERSARIAL EVASION RESEARCH MATRIX'}
-              {activeTab === 'mitigation' && 'PREPARED STATEMENT COMPILER PROOFS'}
+              {activeTab === 'simulator' && 'HOW SQL INJECTION WORKS (ANATOMY & AST)'}
+              {activeTab === 'research' && 'ADVERSARIAL EVASION RESEARCH & LEXICAL LAB'}
             </span>
           </div>
 
@@ -375,266 +368,154 @@ export default function SidebarDashboard() {
             </div>
           )}
 
-          {/* TAB 3: LEXICAL AST & ENTROPY ENGINE (RESEARCH MODULE) */}
-          {activeTab === 'lexer' && (
-            <div className="space-y-6 max-w-4xl animate-in fade-in duration-150">
-              <div className="flex items-center justify-between pb-2 border-b border-zinc-800">
-                <span className="text-xs font-mono font-semibold uppercase text-zinc-200">
-                  GRAMMAR-BASED LEXICAL TOKENIZER &amp; SHANNON ENTROPY
-                </span>
-                <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded">
-                  RESEARCH MODULE
-                </span>
-              </div>
-
-              {/* Interactive Lexer Input */}
-              <div className="rounded-lg border border-zinc-800 bg-zinc-900/60 p-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-mono uppercase text-zinc-400 font-semibold">
-                    INPUT QUERY PARAMETER TO DECOMPOSE:
+          {/* TAB 3: ADVERSARIAL EVASION RESEARCH & LEXICAL LAB */}
+          {activeTab === 'research' && (
+            <div className="space-y-8 max-w-5xl animate-in fade-in duration-150">
+              {/* Part 1: Adversarial Evasion Matrix */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between pb-2 border-b border-zinc-800">
+                  <span className="text-xs font-mono font-semibold uppercase text-zinc-200">
+                    ADVERSARIAL WAF EVASION BENCHMARK MATRIX
                   </span>
-                  <div className="flex gap-1.5">
-                    {[
-                      "admin'/**/OR/**/1=1#",
-                      "' OR 1=1 --",
-                      "' UNION SELECT id, password FROM users --",
-                      "sarah.jenkins@apexcorp.internal",
-                    ].map((sample) => (
-                      <button
-                        key={sample}
-                        onClick={() => setLexerInput(sample)}
-                        className="rounded border border-zinc-800 bg-zinc-950 px-2 py-0.5 text-[10px] font-mono text-zinc-400 hover:text-zinc-200 transition-colors"
-                      >
-                        {sample.slice(0, 18)}...
-                      </button>
-                    ))}
-                  </div>
+                  <span className="text-[10px] font-mono text-zinc-400">RESEARCH BENCHMARK</span>
                 </div>
 
-                <input
-                  type="text"
-                  value={lexerInput}
-                  onChange={(e) => setLexerInput(e.target.value)}
-                  className="w-full rounded border border-zinc-700 bg-zinc-950 px-3.5 py-2 text-xs font-mono text-amber-300 focus:border-amber-500/50 focus:outline-none"
-                />
-              </div>
-
-              {/* Entropy & Grammar State Cards */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 font-mono text-xs">
-                <div className="rounded-lg border border-zinc-800 bg-zinc-900/40 p-3.5 space-y-1">
-                  <span className="text-[10px] text-zinc-500 uppercase block">Shannon Entropy (H)</span>
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-xl font-bold text-white">{lexerAnalysis.entropy}</span>
-                    <span className="text-[10px] text-zinc-400">bits / char</span>
-                  </div>
-                  <span
-                    className={`text-[10px] block font-semibold ${lexerAnalysis.entropy > 4.0 ? 'text-amber-400' : 'text-emerald-400'
-                      }`}
-                  >
-                    {lexerAnalysis.entropyVerdict}
-                  </span>
-                </div>
-
-                <div className="rounded-lg border border-zinc-800 bg-zinc-900/40 p-3.5 space-y-1">
-                  <span className="text-[10px] text-zinc-500 uppercase block">Token Stream Count</span>
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-xl font-bold text-white">{lexerAnalysis.tokenCount}</span>
-                    <span className="text-[10px] text-zinc-400">discrete tokens</span>
-                  </div>
-                  <span className="text-[10px] text-zinc-400 block font-semibold">Decomposed via SQL Lexer</span>
-                </div>
-
-                <div className="rounded-lg border border-zinc-800 bg-zinc-900/40 p-3.5 space-y-1">
-                  <span className="text-[10px] text-zinc-500 uppercase block">AST Grammar Transition</span>
-                  <div className="text-sm font-bold text-rose-400 truncate">{lexerAnalysis.grammarVerdict}</div>
-                  <span className="text-[10px] text-zinc-400 block truncate">{lexerAnalysis.astShift}</span>
-                </div>
-              </div>
-
-              {/* Visual Token Stream */}
-              <div className="rounded-lg border border-zinc-800 bg-zinc-900/40 p-4 space-y-2.5">
-                <span className="text-[10px] font-mono text-zinc-400 uppercase font-semibold block">
-                  PARSED TOKEN STREAM (CHIPS):
-                </span>
-                <div className="flex flex-wrap gap-2">
-                  {lexerAnalysis.tokens.map((t, idx) => (
-                    <div
-                      key={idx}
-                      className={`flex items-center gap-1.5 rounded border px-2.5 py-1 text-xs font-mono ${t.risk === 'HIGH' || t.risk === 'CRITICAL'
-                        ? 'border-rose-500/40 bg-rose-500/10 text-rose-300'
-                        : 'border-zinc-800 bg-zinc-950 text-zinc-300'
-                        }`}
-                    >
-                      <span className="text-[9px] text-zinc-500 uppercase font-semibold">{t.type}:</span>
-                      <span className="font-bold">{t.value}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* AST Grammar Comparison */}
-              <div className="rounded-lg border border-zinc-800 bg-zinc-900/40 p-4 space-y-3 text-xs font-mono">
-                <span className="text-[10px] text-zinc-400 uppercase font-semibold block">
-                  AST TREE MUTATION EXPLANATION:
-                </span>
-                <div className="grid sm:grid-cols-2 gap-3 text-[11px]">
-                  <div className="rounded bg-zinc-950 p-3 border border-zinc-800 space-y-1">
-                    <span className="text-emerald-400 font-bold block">INTENDED QUERY PARSE TREE</span>
-                    <p className="text-zinc-400 leading-relaxed">
-                      <code>SELECT * FROM users WHERE (col = ?literal)</code>
-                      <br />
-                      The parser expects a single leaf node value in the syntax tree.
-                    </p>
-                  </div>
-                  <div className="rounded bg-zinc-950 p-3 border border-zinc-800 space-y-1">
-                    <span className="text-rose-400 font-bold block">INJECTED SYNTACTIC MUTATION</span>
-                    <p className="text-zinc-400 leading-relaxed">
-                      <code>SELECT * FROM users WHERE (col = 'admin') OR (1=1)</code>
-                      <br />
-                      The token stream forces a binary expression node that collapses to TRUE.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* TAB 3: ADVERSARIAL EVASION BENCHMARK MATRIX */}
-          {activeTab === 'benchmark' && (
-            <div className="space-y-5 max-w-5xl animate-in fade-in duration-150">
-              <div className="flex items-center justify-between pb-2 border-b border-zinc-800">
-                <span className="text-xs font-mono font-semibold uppercase text-zinc-200">
-                  ADVERSARIAL WAF EVASION BENCHMARK MATRIX
-                </span>
-                <span className="text-[10px] font-mono text-zinc-400">RESEARCH BENCHMARK</span>
-              </div>
-
-              <div className="overflow-x-auto rounded-lg border border-zinc-800 bg-zinc-900/40 font-mono text-xs">
-                <table className="w-full text-left text-[11px]">
-                  <thead className="border-b border-zinc-800 bg-zinc-900/90 text-zinc-400 uppercase text-[10px]">
-                    <tr>
-                      <th className="px-3.5 py-2.5">Evasion Technique</th>
-                      <th className="px-3.5 py-2.5">Adversarial Payload</th>
-                      <th className="px-3.5 py-2.5">Legacy Regex Filter</th>
-                      <th className="px-3.5 py-2.5">SQLGuard Lexical WAF</th>
-                      <th className="px-3.5 py-2.5">Defense Mechanism</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-zinc-800/60">
-                    {RESEARCH_BENCHMARKS.map((b, idx) => (
-                      <tr key={idx} className="hover:bg-zinc-850/40 transition-colors">
-                        <td className="px-3.5 py-2.5 whitespace-nowrap">
-                          <span className="font-semibold text-zinc-200 block">{b.technique}</span>
-                          <span className="text-[10px] text-zinc-500">{b.cveRef}</span>
-                        </td>
-                        <td className="px-3.5 py-2.5 text-amber-300 font-mono max-w-[200px] truncate">
-                          {b.payload}
-                        </td>
-                        <td className="px-3.5 py-2.5 whitespace-nowrap">
-                          <span className="inline-flex items-center gap-1 rounded bg-rose-500/10 border border-rose-500/20 px-2 py-0.5 text-[10px] font-bold text-rose-400">
-                            <XCircle className="h-3 w-3" /> {b.naiveRegex}
-                          </span>
-                        </td>
-                        <td className="px-3.5 py-2.5 whitespace-nowrap">
-                          <span className="inline-flex items-center gap-1 rounded bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 text-[10px] font-bold text-emerald-400">
-                            <CheckCircle2 className="h-3 w-3" /> {b.sqlguard}
-                          </span>
-                        </td>
-                        <td className="px-3.5 py-2.5 text-zinc-400 text-[10px] max-w-xs">
-                          {b.sqlguardReason}
-                        </td>
+                <div className="overflow-x-auto rounded-lg border border-zinc-800 bg-zinc-900/40 font-mono text-xs">
+                  <table className="w-full text-left text-[11px]">
+                    <thead className="border-b border-zinc-800 bg-zinc-900/90 text-zinc-400 uppercase text-[10px]">
+                      <tr>
+                        <th className="px-3.5 py-2.5">Evasion Technique</th>
+                        <th className="px-3.5 py-2.5">Adversarial Payload</th>
+                        <th className="px-3.5 py-2.5">Legacy Regex Filter</th>
+                        <th className="px-3.5 py-2.5">SQLGuard Lexical WAF</th>
+                        <th className="px-3.5 py-2.5">Defense Mechanism</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody className="divide-y divide-zinc-800/60">
+                      {RESEARCH_BENCHMARKS.map((b, idx) => (
+                        <tr key={idx} className="hover:bg-zinc-850/40 transition-colors">
+                          <td className="px-3.5 py-2.5 whitespace-nowrap">
+                            <span className="font-semibold text-zinc-200 block">{b.technique}</span>
+                            <span className="text-[10px] text-zinc-500">{b.cveRef}</span>
+                          </td>
+                          <td className="px-3.5 py-2.5 text-amber-300 font-mono max-w-[200px] truncate">
+                            {b.payload}
+                          </td>
+                          <td className="px-3.5 py-2.5 whitespace-nowrap">
+                            <span className="inline-flex items-center gap-1 rounded bg-rose-500/10 border border-rose-500/20 px-2 py-0.5 text-[10px] font-bold text-rose-400">
+                              <XCircle className="h-3 w-3" /> {b.naiveRegex}
+                            </span>
+                          </td>
+                          <td className="px-3.5 py-2.5 whitespace-nowrap">
+                            <span className="inline-flex items-center gap-1 rounded bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 text-[10px] font-bold text-emerald-400">
+                              <CheckCircle2 className="h-3 w-3" /> {b.sqlguard}
+                            </span>
+                          </td>
+                          <td className="px-3.5 py-2.5 text-zinc-400 text-[10px] max-w-xs">
+                            {b.sqlguardReason}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
-            </div>
-          )}
 
-          {/* TAB 4: COMPILER DEFENSE SPECS */}
-          {activeTab === 'mitigation' && (
-            <div className="space-y-5 max-w-4xl animate-in fade-in duration-150">
-              <div className="flex items-center justify-between pb-2 border-b border-zinc-800">
-                <span className="text-xs font-mono font-semibold uppercase text-zinc-200">
-                  QUERY COMPILER ARCHITECTURE: PREPARED STATEMENTS
-                </span>
-                <span className="text-[10px] font-mono text-zinc-500">AST COMPILER LEVEL DEFENSE</span>
-              </div>
+              {/* Part 2: Grammar-based Lexical Tokenizer & Shannon Entropy */}
+              <div className="space-y-4 pt-4 border-t border-zinc-800">
+                <div className="flex items-center justify-between pb-2 border-b border-zinc-800">
+                  <span className="text-xs font-mono font-semibold uppercase text-zinc-200">
+                    GRAMMAR-BASED LEXICAL TOKENIZER &amp; SHANNON ENTROPY
+                  </span>
+                  <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded">
+                    TOKEN LAB
+                  </span>
+                </div>
 
-              {/* App Selector */}
-              <div className="flex rounded-md border border-zinc-800 bg-zinc-900 p-0.5 text-xs font-mono w-fit">
-                {['ApexPortal', 'ShopSphere', 'MedVault'].map((app) => (
-                  <button
-                    key={app}
-                    onClick={() => setMitApp(app)}
-                    className={`rounded px-3 py-1.5 transition-colors ${mitApp === app ? 'bg-zinc-800 text-zinc-100 font-semibold shadow-sm' : 'text-zinc-500 hover:text-zinc-300'
+                {/* Interactive Lexer Input */}
+                <div className="rounded-lg border border-zinc-800 bg-zinc-900/60 p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-mono uppercase text-zinc-400 font-semibold">
+                      INPUT QUERY PARAMETER TO DECOMPOSE:
+                    </span>
+                    <div className="flex gap-1.5">
+                      {[
+                        "admin'/**/OR/**/1=1#",
+                        "' OR 1=1 --",
+                        "' UNION SELECT id, password FROM users --",
+                        "sarah.jenkins@apexcorp.internal",
+                      ].map((sample) => (
+                        <button
+                          key={sample}
+                          onClick={() => setLexerInput(sample)}
+                          className="rounded border border-zinc-800 bg-zinc-950 px-2 py-0.5 text-[10px] font-mono text-zinc-400 hover:text-zinc-200 transition-colors"
+                        >
+                          {sample.slice(0, 18)}...
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <input
+                    type="text"
+                    value={lexerInput}
+                    onChange={(e) => setLexerInput(e.target.value)}
+                    className="w-full rounded border border-zinc-700 bg-zinc-950 px-3.5 py-2 text-xs font-mono text-amber-300 focus:border-amber-500/50 focus:outline-none"
+                  />
+                </div>
+
+                {/* Entropy & Grammar State Cards */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 font-mono text-xs">
+                  <div className="rounded-lg border border-zinc-800 bg-zinc-900/40 p-3.5 space-y-1">
+                    <span className="text-[10px] text-zinc-500 uppercase block">Shannon Entropy (H)</span>
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-xl font-bold text-white">{lexerAnalysis.entropy}</span>
+                      <span className="text-[10px] text-zinc-400">bits / char</span>
+                    </div>
+                    <span
+                      className={`text-[10px] block font-semibold ${
+                        lexerAnalysis.entropy > 4.0 ? 'text-amber-400' : 'text-emerald-400'
                       }`}
-                  >
-                    {app}
-                  </button>
-                ))}
-              </div>
-
-              <div className="grid gap-4 md:grid-cols-2">
-                {/* Vulnerable */}
-                <div className="rounded-lg border border-rose-500/20 bg-rose-500/5 p-4 space-y-3">
-                  <div className="flex items-center gap-1.5 text-xs font-bold text-rose-400 font-mono uppercase">
-                    <ShieldAlert className="h-4 w-4" />
-                    <span>RAW STRING CONCATENATION (INSECURE)</span>
+                    >
+                      {lexerAnalysis.entropyVerdict}
+                    </span>
                   </div>
-                  <CodeBlock
-                    language="javascript"
-                    highlight={true}
-                    code={
-                      mitApp === 'ApexPortal'
-                        ? `// INSECURE CONCATENATION\nconst query = \`SELECT * FROM users\n  WHERE username = '\${username}'\n  AND password = '\${password}'\`;\nawait db.query(query);`
-                        : mitApp === 'ShopSphere'
-                          ? `// INSECURE CONCATENATION\nconst query = \`SELECT * FROM products\n  WHERE name LIKE '%\${q}%'\`;\nawait db.query(query);`
-                          : `// INSECURE CONCATENATION\nconst query = \`SELECT * FROM records\n  WHERE id = \${mrnId}\`;\nawait db.query(query);`
-                    }
-                  />
-                  <p className="text-[11px] text-zinc-400 font-mono">
-                    User input modifies the SQL syntax tree directly prior to database compilation.
-                  </p>
+
+                  <div className="rounded-lg border border-zinc-800 bg-zinc-900/40 p-3.5 space-y-1">
+                    <span className="text-[10px] text-zinc-500 uppercase block">Token Stream Count</span>
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-xl font-bold text-white">{lexerAnalysis.tokenCount}</span>
+                      <span className="text-[10px] text-zinc-400">discrete tokens</span>
+                    </div>
+                    <span className="text-[10px] text-zinc-400 block font-semibold">Decomposed via SQL Lexer</span>
+                  </div>
+
+                  <div className="rounded-lg border border-zinc-800 bg-zinc-900/40 p-3.5 space-y-1">
+                    <span className="text-[10px] text-zinc-500 uppercase block">AST Grammar Transition</span>
+                    <div className="text-sm font-bold text-rose-400 truncate">{lexerAnalysis.grammarVerdict}</div>
+                    <span className="text-[10px] text-zinc-400 block truncate">{lexerAnalysis.astShift}</span>
+                  </div>
                 </div>
 
-                {/* Secure */}
-                <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-4 space-y-3">
-                  <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-400 font-mono uppercase">
-                    <ShieldCheck className="h-4 w-4" />
-                    <span>PARAMETERIZED PREPARED STATEMENT (SECURE)</span>
-                  </div>
-                  <CodeBlock
-                    language="javascript"
-                    code={
-                      mitApp === 'ApexPortal'
-                        ? `// PARAMETERIZED STATEMENT\nconst query = 'SELECT * FROM users WHERE username = ? AND password = ?';\nawait db.query(query, [username, password]);`
-                        : mitApp === 'ShopSphere'
-                          ? `// PARAMETERIZED STATEMENT\nconst query = 'SELECT * FROM products WHERE name LIKE ?';\nawait db.query(query, [\`%\${q}%\`]);`
-                          : `// PARAMETERIZED STATEMENT\nconst query = 'SELECT * FROM records WHERE id = ?';\nawait db.query(query, [parseInt(mrnId)]);`
-                    }
-                  />
-                  <p className="text-[11px] text-zinc-400 font-mono">
-                    Execution plan is pre-compiled. Input parameters are bound strictly as inert data values.
-                  </p>
-                </div>
-              </div>
-
-              {/* Technical Mechanics */}
-              <div className="rounded-lg border border-zinc-800 bg-zinc-900/40 p-4 space-y-2 text-xs text-zinc-400 font-mono">
-                <span className="text-zinc-200 font-semibold uppercase block text-[11px]">IMMUTABLE QUERY COMPILER PHASES</span>
-                <div className="grid sm:grid-cols-3 gap-3 pt-2 text-[11px]">
-                  <div className="rounded bg-zinc-950 p-3 border border-zinc-800">
-                    <span className="text-amber-400 font-bold block mb-1">1. PRE-COMPILATION</span>
-                    SQL syntax is analyzed and compiled into a query plan before any parameter data is received.
-                  </div>
-                  <div className="rounded bg-zinc-950 p-3 border border-zinc-800">
-                    <span className="text-amber-400 font-bold block mb-1">2. TYPE ENFORCEMENT</span>
-                    Numeric, string, and timestamp types are validated by the driver protocol before transmission.
-                  </div>
-                  <div className="rounded bg-zinc-950 p-3 border border-zinc-800">
-                    <span className="text-amber-400 font-bold block mb-1">3. LITERAL BINDING</span>
-                    Quotes and delimiters inside parameters are treated as literal text bytes, preventing syntax breakout.
+                {/* Visual Token Stream */}
+                <div className="rounded-lg border border-zinc-800 bg-zinc-900/40 p-4 space-y-2.5">
+                  <span className="text-[10px] font-mono text-zinc-400 uppercase font-semibold block">
+                    PARSED TOKEN STREAM (CHIPS):
+                  </span>
+                  <div className="flex flex-wrap gap-2">
+                    {lexerAnalysis.tokens.map((t, idx) => (
+                      <div
+                        key={idx}
+                        className={`flex items-center gap-1.5 rounded border px-2.5 py-1 text-xs font-mono ${
+                          t.risk === 'HIGH' || t.risk === 'CRITICAL'
+                            ? 'border-rose-500/40 bg-rose-500/10 text-rose-300'
+                            : 'border-zinc-800 bg-zinc-950 text-zinc-300'
+                        }`}
+                      >
+                        <span className="text-[9px] text-zinc-500 uppercase font-semibold">{t.type}:</span>
+                        <span className="font-bold">{t.value}</span>
+                      </div>
+                    ))}
                   </div>
                 </div>
               </div>

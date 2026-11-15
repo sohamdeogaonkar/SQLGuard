@@ -51,7 +51,7 @@ export default function StageshowWindow({
           </div>
         </div>
 
-        {/* Right: Badge / Status Indicator */}
+        {/* Right: Badge / Status Indicator & Backlink */}
         <div className="flex items-center gap-2">
           {badge && (
             <span className={`inline-flex items-center gap-1 rounded border px-2 py-0.5 text-[10px] font-mono font-medium ${badgeStyles[badgeTone] || badgeStyles.zinc}`}>
@@ -59,6 +59,13 @@ export default function StageshowWindow({
               <span>{badge}</span>
             </span>
           )}
+          <a
+            href="/"
+            className="hidden sm:inline-flex items-center gap-1 rounded border border-zinc-700 bg-zinc-800 hover:bg-zinc-700 hover:text-white px-2 py-0.5 text-[10px] font-mono text-zinc-300 transition-colors"
+            title="Return to SQLGuard Security Operations Console"
+          >
+            <span>← WAF Console</span>
+          </a>
           {statusIndicator}
         </div>
       </div>
