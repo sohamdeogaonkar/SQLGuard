@@ -1,20 +1,21 @@
-import { SQL_PATTERNS, RISK_LEVELS } from './patterns';
+import { SQL_PATTERNS, RISK_LEVELS } from './patterns.js';
 
 export function detectSQLInjection(input) {
-  if (!input || input.trim() === '') {
+  if (!input || typeof input !== 'string' || input.trim() === '') {
     return {
-      input,
+      input: input || '',
       riskScore: 0,
       level: RISK_LEVELS.SAFE,
       matches: [],
       isMalicious: false,
-      explanation: 'Empty input — nothing to analyze.',
+      explanation: 'Empty parameter payload.',
       timestamp: new Date().toISOString(),
     };
   }
 
   const matches = [];
   let totalSeverity = 0;
+  let maxSeverity = 0;
 
   for (const pattern of SQL_PATTERNS) {
     const found = input.match(pattern.regex);
@@ -28,13 +29,32 @@ export function detectSQLInjection(input) {
         count: found.length,
       });
       totalSeverity += pattern.severity * found.length;
+      if (pattern.severity > maxSeverity) {
+        maxSeverity = pattern.severity;
+      }
     }
   }
 
-  // Normalize risk score to 0-100
-  const riskScore = Math.min(100, Math.round((totalSeverity / 20) * 100));
+  // Any pattern with severity >= 7 is definitively malicious and must be blocked
+  const isMalicious = matches.length > 0 && (maxSeverity >= 7 || totalSeverity >= 7);
 
-  // Determine risk level
+  // Compute normalized risk score (0-100)
+  let riskScore = 0;
+  if (matches.length > 0) {
+    if (maxSeverity >= 10 || totalSeverity >= 16) {
+      riskScore = 100;
+    } else if (maxSeverity >= 9 || totalSeverity >= 12) {
+      riskScore = 95;
+    } else if (maxSeverity >= 8 || totalSeverity >= 9) {
+      riskScore = 85;
+    } else if (maxSeverity >= 7) {
+      riskScore = 75;
+    } else {
+      riskScore = Math.min(60, Math.round((totalSeverity / 10) * 60));
+    }
+  }
+
+  // Determine risk tier
   let level = RISK_LEVELS.SAFE;
   for (const [, rl] of Object.entries(RISK_LEVELS)) {
     if (riskScore >= rl.min && riskScore <= rl.max) {
@@ -43,20 +63,17 @@ export function detectSQLInjection(input) {
     }
   }
 
-  // Generate explanation
+  // Concise technical explanation
   let explanation = '';
   if (matches.length === 0) {
-    explanation = 'No SQL injection patterns detected. The input appears safe.';
+    explanation = 'No SQL injection signatures identified. Input parameter verified clean.';
   } else {
     const topMatch = matches.sort((a, b) => b.severity - a.severity)[0];
-    explanation = `Detected ${matches.length} suspicious pattern${matches.length > 1 ? 's' : ''}. `;
-    explanation += `Most severe: ${topMatch.name} — ${topMatch.description}. `;
-    if (riskScore > 60) {
-      explanation += 'This input would likely be used in an SQL injection attack and should be blocked.';
-    } else if (riskScore > 30) {
-      explanation += 'This input contains patterns commonly associated with SQL injection probing.';
+    explanation = `Identified signature: ${topMatch.name} (Matched: \`${topMatch.matched}\`). `;
+    if (isMalicious) {
+      explanation += 'Request violates WAF injection policy and was dropped at edge.';
     } else {
-      explanation += 'Low-confidence match — could be a false positive but warrants logging.';
+      explanation += 'Low risk anomaly logged for security telemetry.';
     }
   }
 
@@ -65,7 +82,7 @@ export function detectSQLInjection(input) {
     riskScore,
     level,
     matches: matches.sort((a, b) => b.severity - a.severity),
-    isMalicious: riskScore > 35,
+    isMalicious,
     explanation,
     timestamp: new Date().toISOString(),
   };
@@ -78,7 +95,7 @@ export function buildVulnerableQuery(type, input) {
     case 'search':
       return `SELECT * FROM products WHERE name LIKE '%${input.query}%'`;
     case 'union':
-      return `SELECT id, name, price FROM products WHERE id = ${input.id}`;
+      return `SELECT id, patient_name, mrn, diagnosis, physician FROM patient_records WHERE id = ${input.id}`;
     default:
       return `SELECT * FROM data WHERE value = '${input}'`;
   }
@@ -98,8 +115,8 @@ export function buildSecureQuery(type, input) {
       };
     case 'union':
       return {
-        query: 'SELECT id, name, price FROM products WHERE id = ?',
-        params: [input.id],
+        query: 'SELECT id, patient_name, mrn, diagnosis, physician FROM patient_records WHERE id = ?',
+        params: [parseInt(input.id) || 0],
       };
     default:
       return {

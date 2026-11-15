@@ -276,9 +276,8 @@ export default function SidebarDashboard() {
                       <button
                         key={app}
                         onClick={() => setActiveAppFilter(app)}
-                        className={`rounded px-2.5 py-1 transition-colors ${
-                          activeAppFilter === app ? 'bg-zinc-800 text-zinc-100 font-semibold shadow-sm' : 'text-zinc-500 hover:text-zinc-300'
-                        }`}
+                        className={`rounded px-2.5 py-1 transition-colors ${activeAppFilter === app ? 'bg-zinc-800 text-zinc-100 font-semibold shadow-sm' : 'text-zinc-500 hover:text-zinc-300'
+                          }`}
                       >
                         {app}
                       </button>
@@ -290,9 +289,8 @@ export default function SidebarDashboard() {
                       <button
                         key={v}
                         onClick={() => setActiveVerdictFilter(v)}
-                        className={`rounded px-2.5 py-1 transition-colors ${
-                          activeVerdictFilter === v ? 'bg-zinc-800 text-zinc-100 font-semibold shadow-sm' : 'text-zinc-500 hover:text-zinc-300'
-                        }`}
+                        className={`rounded px-2.5 py-1 transition-colors ${activeVerdictFilter === v ? 'bg-zinc-800 text-zinc-100 font-semibold shadow-sm' : 'text-zinc-500 hover:text-zinc-300'
+                          }`}
                       >
                         {v}
                       </button>
@@ -352,11 +350,10 @@ export default function SidebarDashboard() {
                               {new Date(log.timestamp).toLocaleTimeString()}
                             </td>
                             <td className="px-3 py-2 whitespace-nowrap">
-                              <span className={`px-1.5 py-0.5 rounded font-bold text-[9px] ${
-                                log.method === 'POST'
-                                  ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
-                                  : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                              }`}>
+                              <span className={`px-1.5 py-0.5 rounded font-bold text-[9px] ${log.method === 'POST'
+                                ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
+                                : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                                }`}>
                                 {log.method}
                               </span>
                             </td>
@@ -377,11 +374,10 @@ export default function SidebarDashboard() {
                             </td>
                             <td className="px-3 py-2 whitespace-nowrap">
                               <span
-                                className={`inline-flex items-center gap-1 rounded px-2 py-0.5 text-[10px] font-bold ${
-                                  isBlocked
-                                    ? 'bg-rose-500/10 text-rose-400 border border-rose-500/30'
-                                    : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
-                                }`}
+                                className={`inline-flex items-center gap-1 rounded px-2 py-0.5 text-[10px] font-bold ${isBlocked
+                                  ? 'bg-rose-500/10 text-rose-400 border border-rose-500/30'
+                                  : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
+                                  }`}
                               >
                                 {log.httpStatus} {log.verdict}
                               </span>
@@ -437,11 +433,10 @@ export default function SidebarDashboard() {
                         </div>
                         <div className="flex items-center gap-2">
                           <span className="text-[10px] text-amber-400 font-bold">{matchCount} HITS</span>
-                          <span className={`rounded px-1.5 py-0.5 text-[10px] font-bold ${
-                            p.severity >= 9 ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20' :
+                          <span className={`rounded px-1.5 py-0.5 text-[10px] font-bold ${p.severity >= 9 ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20' :
                             p.severity >= 7 ? 'bg-orange-500/10 text-orange-400 border border-orange-500/20' :
-                            'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20'
-                          }`}>
+                              'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20'
+                            }`}>
                             SEVERITY {p.severity}/10
                           </span>
                         </div>
@@ -518,8 +513,8 @@ export default function SidebarDashboard() {
                         dispApp === 'ApexPortal'
                           ? 'POST /api/v1/auth/login'
                           : dispApp === 'ShopSphere'
-                          ? 'GET /catalog/search?q='
-                          : 'GET /api/records/mrn?id='
+                            ? 'GET /catalog/search?q='
+                            : 'GET /api/records/mrn?id='
                       }
                       className="w-full rounded border border-zinc-800 bg-zinc-950 px-3 py-2 text-xs font-mono text-zinc-500 cursor-not-allowed"
                     />
@@ -553,11 +548,10 @@ export default function SidebarDashboard() {
                 <div className="rounded-lg border border-zinc-800 bg-zinc-900/60 p-5 space-y-4 animate-in fade-in duration-150">
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] font-mono uppercase tracking-wider text-zinc-400 font-semibold">EVALUATION VERDICT</span>
-                    <span className={`inline-flex items-center gap-1 rounded px-2.5 py-0.5 text-xs font-mono font-bold ${
-                      dispResult.verdict === 'BLOCKED'
-                        ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
-                        : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                    }`}>
+                    <span className={`inline-flex items-center gap-1 rounded px-2.5 py-0.5 text-xs font-mono font-bold ${dispResult.verdict === 'BLOCKED'
+                      ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+                      : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                      }`}>
                       {dispResult.httpStatus} {dispResult.verdict}
                     </span>
                   </div>
@@ -594,9 +588,8 @@ export default function SidebarDashboard() {
                   <button
                     key={app}
                     onClick={() => setMitApp(app)}
-                    className={`rounded px-3 py-1.5 transition-colors ${
-                      mitApp === app ? 'bg-zinc-800 text-zinc-100 font-semibold shadow-sm' : 'text-zinc-500 hover:text-zinc-300'
-                    }`}
+                    className={`rounded px-3 py-1.5 transition-colors ${mitApp === app ? 'bg-zinc-800 text-zinc-100 font-semibold shadow-sm' : 'text-zinc-500 hover:text-zinc-300'
+                      }`}
                   >
                     {app}
                   </button>
@@ -617,8 +610,8 @@ export default function SidebarDashboard() {
                       mitApp === 'ApexPortal'
                         ? `// INSECURE CONCATENATION\nconst query = \`SELECT * FROM users\n  WHERE username = '\${username}'\n  AND password = '\${password}'\`;\nawait db.query(query);`
                         : mitApp === 'ShopSphere'
-                        ? `// INSECURE CONCATENATION\nconst query = \`SELECT * FROM products\n  WHERE name LIKE '%\${q}%'\`;\nawait db.query(query);`
-                        : `// INSECURE CONCATENATION\nconst query = \`SELECT * FROM records\n  WHERE id = \${mrnId}\`;\nawait db.query(query);`
+                          ? `// INSECURE CONCATENATION\nconst query = \`SELECT * FROM products\n  WHERE name LIKE '%\${q}%'\`;\nawait db.query(query);`
+                          : `// INSECURE CONCATENATION\nconst query = \`SELECT * FROM records\n  WHERE id = \${mrnId}\`;\nawait db.query(query);`
                     }
                   />
                   <p className="text-[11px] text-zinc-400 font-mono">
@@ -638,8 +631,8 @@ export default function SidebarDashboard() {
                       mitApp === 'ApexPortal'
                         ? `// PARAMETERIZED STATEMENT\nconst query = 'SELECT * FROM users WHERE username = ? AND password = ?';\nawait db.query(query, [username, password]);`
                         : mitApp === 'ShopSphere'
-                        ? `// PARAMETERIZED STATEMENT\nconst query = 'SELECT * FROM products WHERE name LIKE ?';\nawait db.query(query, [\`%\${q}%\`]);`
-                        : `// PARAMETERIZED STATEMENT\nconst query = 'SELECT * FROM records WHERE id = ?';\nawait db.query(query, [parseInt(mrnId)]);`
+                          ? `// PARAMETERIZED STATEMENT\nconst query = 'SELECT * FROM products WHERE name LIKE ?';\nawait db.query(query, [\`%\${q}%\`]);`
+                          : `// PARAMETERIZED STATEMENT\nconst query = 'SELECT * FROM records WHERE id = ?';\nawait db.query(query, [parseInt(mrnId)]);`
                     }
                   />
                   <p className="text-[11px] text-zinc-400 font-mono">

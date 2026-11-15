@@ -1,5 +1,5 @@
 // SQLGuard WAF Event Store & Telemetry Bus
-import { detectSQLInjection, buildVulnerableQuery, buildSecureQuery } from './detector';
+import { detectSQLInjection, buildVulnerableQuery, buildSecureQuery } from './detector.js';
 
 const STORAGE_KEY = 'sqlguard_waf_logs';
 const MAX_LOGS = 250;
