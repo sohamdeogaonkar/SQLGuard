@@ -7,20 +7,21 @@
     "build": "next build",
     "start": "next start",
     "pages:build": "npx @cloudflare/next-on-pages",
-    "pages:dev": "npx wrangler pages dev .vercel/output/static --compatibility-date=2024-07-01 --compatibility-flags=nodejs_compat",
-    "deploy": "npm run pages:build && npx wrangler pages deploy .vercel/output/static --project-name=sqlguard"
+    "pages:dev": "npx wrangler pages dev .vercel/output/static --compatibility-date=2024-11-01 --compatibility-flags=nodejs_compat",
+    "pages:deploy": "npx wrangler pages deploy .vercel/output/static",
+    "deploy": "npm run pages:build && npx wrangler pages deploy .vercel/output/static"
   },
   "dependencies": {
+    "lucide-react": "^0.454.0",
     "next": "15.5.2",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0",
-    "lucide-react": "^0.454.0"
+    "react-dom": "^19.0.0"
   },
   "devDependencies": {
     "@cloudflare/next-on-pages": "^1.13.5",
-    "wrangler": "^3.86.0",
-    "tailwindcss": "^3.4.14",
+    "autoprefixer": "^10.4.20",
     "postcss": "^8.4.47",
-    "autoprefixer": "^10.4.20"
+    "tailwindcss": "^3.4.14",
+    "wrangler": "^4.162.0"
   }
 }
