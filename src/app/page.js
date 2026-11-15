@@ -28,6 +28,7 @@ import RequestInspector from '../components/RequestInspector';
 import CodeBlock from '../components/CodeBlock';
 import RiskBadge from '../components/RiskBadge';
 import ExecutionSimulator from '../components/ExecutionSimulator';
+import DemoAppsHub from '../components/DemoAppsHub';
 import { getLogs, getStats, clearLogs, recordInspection } from '../lib/store';
 import { SQL_PATTERNS } from '../lib/patterns';
 import { analyzeASTMutation, tokenizeSQLStream, calculateShannonEntropy } from '../lib/lexer';
@@ -138,8 +139,9 @@ export default function SidebarDashboard() {
         if (isInput) document.activeElement?.blur();
       } else if (!isInput) {
         if (e.key === '1') setActiveTab('traffic');
-        if (e.key === '2') setActiveTab('simulator');
-        if (e.key === '3') setActiveTab('research');
+        if (e.key === '2') setActiveTab('demos');
+        if (e.key === '3') setActiveTab('simulator');
+        if (e.key === '4') setActiveTab('research');
       }
     };
 
@@ -185,6 +187,7 @@ export default function SidebarDashboard() {
             <span className="font-mono text-xs text-zinc-500 uppercase tracking-wider">CONSOLE /</span>
             <span className="text-xs font-semibold text-zinc-200 uppercase font-mono">
               {activeTab === 'traffic' && 'LIVE TRAFFIC STREAM'}
+              {activeTab === 'demos' && 'PROTECTED DEMONSTRATION APPLICATIONS'}
               {activeTab === 'simulator' && 'HOW SQL INJECTION WORKS (ANATOMY & AST)'}
               {activeTab === 'research' && 'ADVERSARIAL EVASION RESEARCH & LEXICAL LAB'}
             </span>
@@ -361,7 +364,14 @@ export default function SidebarDashboard() {
             </div>
           )}
 
-          {/* TAB 2: INTERACTIVE SQL INJECTION ANATOMY & AST EXECUTION SIMULATOR */}
+          {/* TAB 2: PROTECTED DEMONSTRATION APPLICATIONS HUB */}
+          {activeTab === 'demos' && (
+            <div className="animate-in fade-in duration-150">
+              <DemoAppsHub />
+            </div>
+          )}
+
+          {/* TAB 3: INTERACTIVE SQL INJECTION ANATOMY & AST EXECUTION SIMULATOR */}
           {activeTab === 'simulator' && (
             <div className="animate-in fade-in duration-150">
               <ExecutionSimulator />
