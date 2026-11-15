@@ -236,9 +236,8 @@ export default function SidebarDashboard() {
                       <button
                         key={app}
                         onClick={() => setActiveAppFilter(app)}
-                        className={`rounded px-2.5 py-1 transition-colors ${
-                          activeAppFilter === app ? 'bg-zinc-800 text-zinc-100 font-semibold shadow-sm' : 'text-zinc-500 hover:text-zinc-300'
-                        }`}
+                        className={`rounded px-2.5 py-1 transition-colors ${activeAppFilter === app ? 'bg-zinc-800 text-zinc-100 font-semibold shadow-sm' : 'text-zinc-500 hover:text-zinc-300'
+                          }`}
                       >
                         {app}
                       </button>
@@ -250,9 +249,8 @@ export default function SidebarDashboard() {
                       <button
                         key={v}
                         onClick={() => setActiveVerdictFilter(v)}
-                        className={`rounded px-2.5 py-1 transition-colors ${
-                          activeVerdictFilter === v ? 'bg-zinc-800 text-zinc-100 font-semibold shadow-sm' : 'text-zinc-500 hover:text-zinc-300'
-                        }`}
+                        className={`rounded px-2.5 py-1 transition-colors ${activeVerdictFilter === v ? 'bg-zinc-800 text-zinc-100 font-semibold shadow-sm' : 'text-zinc-500 hover:text-zinc-300'
+                          }`}
                       >
                         {v}
                       </button>
@@ -313,11 +311,10 @@ export default function SidebarDashboard() {
                             </td>
                             <td className="px-3 py-2 whitespace-nowrap">
                               <span
-                                className={`px-1.5 py-0.5 rounded font-bold text-[9px] ${
-                                  log.method === 'POST'
-                                    ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
-                                    : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                                }`}
+                                className={`px-1.5 py-0.5 rounded font-bold text-[9px] ${log.method === 'POST'
+                                  ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
+                                  : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                                  }`}
                               >
                                 {log.method}
                               </span>
@@ -339,11 +336,10 @@ export default function SidebarDashboard() {
                             </td>
                             <td className="px-3 py-2 whitespace-nowrap">
                               <span
-                                className={`inline-flex items-center gap-1 rounded px-2 py-0.5 text-[10px] font-bold ${
-                                  isBlocked
-                                    ? 'bg-rose-500/10 text-rose-400 border border-rose-500/30'
-                                    : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
-                                }`}
+                                className={`inline-flex items-center gap-1 rounded px-2 py-0.5 text-[10px] font-bold ${isBlocked
+                                  ? 'bg-rose-500/10 text-rose-400 border border-rose-500/30'
+                                  : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
+                                  }`}
                               >
                                 {log.httpStatus} {log.verdict}
                               </span>
@@ -422,9 +418,8 @@ export default function SidebarDashboard() {
                     <span className="text-[10px] text-zinc-400">bits / char</span>
                   </div>
                   <span
-                    className={`text-[10px] block font-semibold ${
-                      lexerAnalysis.entropy > 4.0 ? 'text-amber-400' : 'text-emerald-400'
-                    }`}
+                    className={`text-[10px] block font-semibold ${lexerAnalysis.entropy > 4.0 ? 'text-amber-400' : 'text-emerald-400'
+                      }`}
                   >
                     {lexerAnalysis.entropyVerdict}
                   </span>
@@ -455,11 +450,10 @@ export default function SidebarDashboard() {
                   {lexerAnalysis.tokens.map((t, idx) => (
                     <div
                       key={idx}
-                      className={`flex items-center gap-1.5 rounded border px-2.5 py-1 text-xs font-mono ${
-                        t.risk === 'HIGH' || t.risk === 'CRITICAL'
-                          ? 'border-rose-500/40 bg-rose-500/10 text-rose-300'
-                          : 'border-zinc-800 bg-zinc-950 text-zinc-300'
-                      }`}
+                      className={`flex items-center gap-1.5 rounded border px-2.5 py-1 text-xs font-mono ${t.risk === 'HIGH' || t.risk === 'CRITICAL'
+                        ? 'border-rose-500/40 bg-rose-500/10 text-rose-300'
+                        : 'border-zinc-800 bg-zinc-950 text-zinc-300'
+                        }`}
                     >
                       <span className="text-[9px] text-zinc-500 uppercase font-semibold">{t.type}:</span>
                       <span className="font-bold">{t.value}</span>
@@ -563,9 +557,8 @@ export default function SidebarDashboard() {
                   <button
                     key={app}
                     onClick={() => setMitApp(app)}
-                    className={`rounded px-3 py-1.5 transition-colors ${
-                      mitApp === app ? 'bg-zinc-800 text-zinc-100 font-semibold shadow-sm' : 'text-zinc-500 hover:text-zinc-300'
-                    }`}
+                    className={`rounded px-3 py-1.5 transition-colors ${mitApp === app ? 'bg-zinc-800 text-zinc-100 font-semibold shadow-sm' : 'text-zinc-500 hover:text-zinc-300'
+                      }`}
                   >
                     {app}
                   </button>
@@ -586,8 +579,8 @@ export default function SidebarDashboard() {
                       mitApp === 'ApexPortal'
                         ? `// INSECURE CONCATENATION\nconst query = \`SELECT * FROM users\n  WHERE username = '\${username}'\n  AND password = '\${password}'\`;\nawait db.query(query);`
                         : mitApp === 'ShopSphere'
-                        ? `// INSECURE CONCATENATION\nconst query = \`SELECT * FROM products\n  WHERE name LIKE '%\${q}%'\`;\nawait db.query(query);`
-                        : `// INSECURE CONCATENATION\nconst query = \`SELECT * FROM records\n  WHERE id = \${mrnId}\`;\nawait db.query(query);`
+                          ? `// INSECURE CONCATENATION\nconst query = \`SELECT * FROM products\n  WHERE name LIKE '%\${q}%'\`;\nawait db.query(query);`
+                          : `// INSECURE CONCATENATION\nconst query = \`SELECT * FROM records\n  WHERE id = \${mrnId}\`;\nawait db.query(query);`
                     }
                   />
                   <p className="text-[11px] text-zinc-400 font-mono">
@@ -607,8 +600,8 @@ export default function SidebarDashboard() {
                       mitApp === 'ApexPortal'
                         ? `// PARAMETERIZED STATEMENT\nconst query = 'SELECT * FROM users WHERE username = ? AND password = ?';\nawait db.query(query, [username, password]);`
                         : mitApp === 'ShopSphere'
-                        ? `// PARAMETERIZED STATEMENT\nconst query = 'SELECT * FROM products WHERE name LIKE ?';\nawait db.query(query, [\`%\${q}%\`]);`
-                        : `// PARAMETERIZED STATEMENT\nconst query = 'SELECT * FROM records WHERE id = ?';\nawait db.query(query, [parseInt(mrnId)]);`
+                          ? `// PARAMETERIZED STATEMENT\nconst query = 'SELECT * FROM products WHERE name LIKE ?';\nawait db.query(query, [\`%\${q}%\`]);`
+                          : `// PARAMETERIZED STATEMENT\nconst query = 'SELECT * FROM records WHERE id = ?';\nawait db.query(query, [parseInt(mrnId)]);`
                     }
                   />
                   <p className="text-[11px] text-zinc-400 font-mono">
