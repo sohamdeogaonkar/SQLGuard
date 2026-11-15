@@ -1,131 +1,289 @@
 'use client';
 
-import { FlaskConical, AlertTriangle } from 'lucide-react';
-import CodeBlock from '../../../components/CodeBlock';
+import { useState } from 'react';
+import Link from 'next/link';
+import { Shield, Lock, Building2, AlertOctagon, CheckCircle2, ArrowRight, RefreshCw, KeyRound, ExternalLink } from 'lucide-react';
+import { recordInspection } from '../../../lib/store';
 
-const attacks = [
+const ATTACK_PRESETS = [
   {
-    title: '1. Basic Tautology',
-    username: "' OR 1=1 --",
-    password: 'anything',
-    vulnerable_sql: "SELECT * FROM users WHERE username = '' OR 1=1 --' AND password = 'anything'",
-    explanation: 'The condition OR 1=1 is always true, so the query returns all users. The -- comments out the rest of the query, bypassing the password check entirely.',
-    result: '✓ Login bypassed — attacker gains access as the first user in the table',
+    label: 'Normal Employee',
+    user: 'sarah.jenkins@apexcorp.com',
+    pass: 'K9#xL92@mPq',
+    desc: 'Benign corporate single sign-on request',
+    isMalicious: false,
   },
   {
-    title: '2. Admin Bypass',
-    username: "admin'--",
-    password: '',
-    vulnerable_sql: "SELECT * FROM users WHERE username = 'admin'--' AND password = ''",
-    explanation: "The single quote closes the username string. The -- comments out the password check. If an 'admin' user exists, the attacker logs in as admin.",
-    result: '✓ Login bypassed — attacker gains admin access without knowing the password',
+    label: "Tautology: ' OR '1'='1' --",
+    user: "admin' OR '1'='1' --",
+    pass: 'anypass',
+    desc: 'Forces query WHERE clause to evaluate to TRUE',
+    isMalicious: true,
   },
   {
-    title: '3. String Equality Bypass',
-    username: "' OR ''='",
-    password: "' OR ''='",
-    vulnerable_sql: "SELECT * FROM users WHERE username = '' OR ''='' AND password = '' OR ''=''",
-    explanation: "The condition ''='' is always true (empty string equals empty string). Both the username and password checks are bypassed.",
-    result: '✓ Login bypassed — universal authentication bypass',
+    label: "Admin Cutoff: admin'--",
+    user: "admin'--",
+    pass: '',
+    desc: 'Truncates password validation logic using SQL comments',
+    isMalicious: true,
+  },
+  {
+    label: "Char Obfuscation",
+    user: "' OR CHAR(49)=CHAR(49) --",
+    pass: 'x',
+    desc: 'Evades simple string filters using ASCII char codes',
+    isMalicious: true,
   },
 ];
 
-export default function LoginDemoPage() {
+export default function ApexPortalLogin() {
+  const [username, setUsername] = useState('sarah.jenkins@apexcorp.com');
+  const [password, setPassword] = useState('••••••••••••');
+  const [status, setStatus] = useState('IDLE'); // 'IDLE' | 'ALLOWED' | 'BLOCKED'
+  const [interceptEvent, setInterceptEvent] = useState(null);
+
+  const handleSignIn = (e) => {
+    e?.preventDefault();
+    if (!username) return;
+
+    const event = recordInspection({
+      targetApp: 'ApexPortal',
+      targetHost: 'auth.apex-corp.internal',
+      method: 'POST',
+      endpoint: '/api/v1/auth/login',
+      clientIp: '198.51.100.44',
+      field: 'username',
+      payload: username,
+    });
+
+    setInterceptEvent(event);
+    if (event.verdict === 'BLOCKED') {
+      setStatus('BLOCKED');
+    } else {
+      setStatus('ALLOWED');
+    }
+  };
+
+  const loadPreset = (preset) => {
+    setUsername(preset.user);
+    setPassword(preset.pass || 'P@ssw0rd2026!');
+    setStatus('IDLE');
+  };
+
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold flex items-center gap-2">
-          <FlaskConical className="h-6 w-6 text-zinc-400" />
-          Login Injection Demo
-        </h1>
-        <p className="mt-1 text-sm text-zinc-400">
-          Demonstrates how SQL injection can bypass authentication in vulnerable login forms.
-        </p>
-      </div>
-
-      {/* Vulnerable form mockup */}
-      <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-5 space-y-3">
-        <div className="flex items-center gap-2 text-sm text-red-400">
-          <AlertTriangle className="h-4 w-4" />
-          <span className="font-medium">Vulnerable Login Form (Demo Only)</span>
-        </div>
-        <div className="space-y-2">
-          <div>
-            <label className="text-xs text-zinc-500 block mb-1">Username</label>
-            <input
-              type="text"
-              disabled
-              placeholder="Enter username"
-              className="w-full rounded border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-500 cursor-not-allowed"
-            />
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-between p-4 sm:p-8 font-sans selection:bg-blue-600 selection:text-white">
+      {/* Portal Top Bar */}
+      <header className="flex items-center justify-between pb-6 border-b border-slate-800/80 max-w-5xl mx-auto w-full">
+        <div className="flex items-center gap-2.5">
+          <div className="flex h-9 w-9 items-center justify-center rounded bg-blue-600 text-white font-bold text-lg shadow-lg shadow-blue-600/20">
+            ▲
           </div>
           <div>
-            <label className="text-xs text-zinc-500 block mb-1">Password</label>
-            <input
-              type="password"
-              disabled
-              placeholder="Enter password"
-              className="w-full rounded border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-500 cursor-not-allowed"
-            />
+            <h1 className="font-semibold text-slate-100 text-sm tracking-wide">Apex Technologies</h1>
+            <span className="text-[11px] text-slate-400 font-mono">Global Identity &amp; Access Management (IAM)</span>
           </div>
-          <button disabled className="rounded bg-zinc-700 px-4 py-2 text-sm text-zinc-500 cursor-not-allowed">
-            Login (Disabled)
-          </button>
         </div>
-        <p className="text-xs text-zinc-600 mt-2">
-          ↑ This form is for display only. See below for how injection attacks work.
-        </p>
-      </div>
 
-      {/* Vulnerable query template */}
-      <div>
-        <h3 className="text-sm font-medium text-zinc-300 mb-2">Vulnerable Query Template</h3>
-        <CodeBlock
-          code={`SELECT * FROM users WHERE username = '{user_input}' AND password = '{pass_input}'`}
-          highlight={true}
-        />
-        <p className="mt-2 text-xs text-zinc-500">
-          User input is directly concatenated into the SQL string — no sanitization or parameterization.
-        </p>
-      </div>
+        <div className="flex items-center gap-2">
+          <span className="hidden sm:inline-flex items-center gap-1.5 rounded bg-slate-900 border border-slate-800 px-2.5 py-1 text-xs font-mono text-slate-400">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            Apex SSO Gateway v4.8
+          </span>
+          <Link
+            href="/"
+            className="inline-flex items-center gap-1 rounded bg-slate-900 hover:bg-slate-800 border border-slate-800 px-3 py-1.5 text-xs text-amber-400 font-medium transition-colors"
+          >
+            Open SQLGuard WAF <ExternalLink className="h-3 w-3" />
+          </Link>
+        </div>
+      </header>
 
-      {/* Attack examples */}
-      <div className="space-y-4">
-        <h2 className="text-lg font-semibold">Attack Examples</h2>
-        {attacks.map((a, i) => (
-          <div key={i} className="rounded-lg border border-zinc-800 bg-zinc-900 p-4 space-y-3">
-            <h3 className="font-medium text-zinc-100">{a.title}</h3>
-            <div className="grid grid-cols-2 gap-3 text-sm">
-              <div>
-                <span className="text-xs text-zinc-500">Username</span>
-                <p className="code-font text-amber-400">{a.username}</p>
+      {/* Main Container */}
+      <main className="max-w-md w-full mx-auto my-10 space-y-6">
+        {status === 'BLOCKED' && interceptEvent ? (
+          /* Realistic WAF 403 Forbidden Interstitial */
+          <div className="rounded-xl border border-red-500/30 bg-slate-900/90 p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-red-500/10 border border-red-500/30 text-red-400">
+                <AlertOctagon className="h-5 w-5" />
               </div>
               <div>
-                <span className="text-xs text-zinc-500">Password</span>
-                <p className="code-font text-amber-400">{a.password || '(empty)'}</p>
+                <span className="font-mono text-xs text-red-400 font-semibold uppercase">HTTP 403 Forbidden</span>
+                <h2 className="text-base font-bold text-slate-100">Request Blocked by SQLGuard WAF</h2>
               </div>
             </div>
+
+            <p className="text-xs text-slate-400 leading-relaxed">
+              A high-risk SQL injection vector was identified in the HTTP POST body. The connection was terminated at the edge before hitting the authentication database.
+            </p>
+
+            <div className="rounded-lg bg-slate-950 p-3 font-mono text-[11px] space-y-1.5 text-slate-400 border border-slate-800">
+              <div className="flex justify-between">
+                <span>Incident ID:</span>
+                <span className="text-slate-200">{interceptEvent.id}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Rule Triggered:</span>
+                <span className="text-red-400 font-semibold">{interceptEvent.mitigationRule}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Risk Score:</span>
+                <span className="text-red-400 font-semibold">{interceptEvent.riskScore} / 100</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Client IP:</span>
+                <span className="text-slate-300">{interceptEvent.clientIp}</span>
+              </div>
+            </div>
+
+            <div className="pt-2 flex items-center justify-between">
+              <button
+                onClick={() => setStatus('IDLE')}
+                className="text-xs text-slate-400 hover:text-slate-200 underline font-medium"
+              >
+                ← Return to Login Form
+              </button>
+              <Link
+                href="/"
+                className="inline-flex items-center gap-1 rounded bg-red-500 hover:bg-red-600 text-white px-3 py-1.5 text-xs font-semibold shadow-lg shadow-red-500/20 transition-colors"
+              >
+                Inspect in SQLGuard <ArrowRight className="h-3 w-3" />
+              </Link>
+            </div>
+          </div>
+        ) : status === 'ALLOWED' ? (
+          /* Realistic Authenticated Session Screen */
+          <div className="rounded-xl border border-emerald-500/30 bg-slate-900/90 p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400">
+                <CheckCircle2 className="h-5 w-5" />
+              </div>
+              <div>
+                <span className="font-mono text-xs text-emerald-400 font-semibold uppercase">Authentication Verified</span>
+                <h2 className="text-base font-bold text-slate-100">Welcome back, Sarah Jenkins</h2>
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-400 leading-relaxed">
+              Session token issued. Identity verified through enterprise Active Directory. No malicious patterns detected in payload.
+            </p>
+
+            <div className="rounded-lg bg-slate-950 p-3 font-mono text-[11px] space-y-1.5 text-slate-400 border border-slate-800">
+              <div className="flex justify-between">
+                <span>User Principal:</span>
+                <span className="text-slate-200 font-medium">s.jenkins@apexcorp.com</span>
+              </div>
+              <div className="flex justify-between">
+                <span>WAF Status:</span>
+                <span className="text-emerald-400 font-semibold">200 ALLOWED (VERIFIED)</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Security Level:</span>
+                <span className="text-slate-300">Level 4 (Executive IAM)</span>
+              </div>
+            </div>
+
+            <div className="pt-2 flex items-center justify-between">
+              <button
+                onClick={() => setStatus('IDLE')}
+                className="text-xs text-slate-400 hover:text-slate-200 underline font-medium"
+              >
+                Log Out
+              </button>
+              <Link
+                href="/"
+                className="inline-flex items-center gap-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-1.5 text-xs font-semibold transition-colors"
+              >
+                View Audit Log in SQLGuard <ArrowRight className="h-3 w-3" />
+              </Link>
+            </div>
+          </div>
+        ) : (
+          /* Realistic Corporate Login Card */
+          <div className="rounded-xl border border-slate-800 bg-slate-900/70 p-6 shadow-2xl backdrop-blur space-y-5">
             <div>
-              <span className="text-xs text-zinc-500 block mb-1">Resulting SQL</span>
-              <CodeBlock code={a.vulnerable_sql} highlight={true} />
+              <h2 className="text-lg font-bold text-slate-100">Single Sign-On (SSO)</h2>
+              <p className="text-xs text-slate-400 mt-1">Authenticate with your corporate directory credentials.</p>
             </div>
-            <p className="text-sm text-zinc-400">{a.explanation}</p>
-            <div className="rounded border border-red-500/20 bg-red-500/5 px-3 py-2 text-sm text-red-400">
-              {a.result}
-            </div>
-          </div>
-        ))}
-      </div>
 
-      {/* Secure version */}
-      <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-4 space-y-2">
-        <h3 className="font-medium text-emerald-400">✓ Secure Version — Parameterized Query</h3>
-        <CodeBlock code={`SELECT * FROM users WHERE username = ? AND password = ?\n-- Parameters: [user_input, pass_input]`} />
-        <p className="text-sm text-zinc-400">
-          With parameterized queries, user input is treated as data, not SQL code.
-          The database engine handles escaping automatically, making injection impossible.
-        </p>
-      </div>
+            <form onSubmit={handleSignIn} className="space-y-4">
+              <div>
+                <label className="block text-xs font-medium text-slate-300 mb-1">Corporate Identity / Username</label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    placeholder="user@apexcorp.com"
+                    className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs font-mono text-slate-100 placeholder-slate-500 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <div className="flex justify-between items-center mb-1">
+                  <label className="text-xs font-medium text-slate-300">Password</label>
+                  <span className="text-[11px] text-blue-400 hover:underline cursor-pointer">Forgot?</span>
+                </div>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs font-mono text-slate-100 focus:border-blue-500 focus:outline-none"
+                />
+              </div>
+
+              <div className="flex items-center justify-between text-xs text-slate-400">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" defaultChecked className="rounded border-slate-700 bg-slate-950 text-blue-600" />
+                  <span>Trust this enterprise device</span>
+                </label>
+              </div>
+
+              <button
+                type="submit"
+                className="w-full rounded-lg bg-blue-600 hover:bg-blue-500 text-white py-2.5 text-xs font-semibold shadow-lg shadow-blue-600/25 transition-all flex items-center justify-center gap-2"
+              >
+                <KeyRound className="h-4 w-4" />
+                Sign In to Corporate Network
+              </button>
+            </form>
+          </div>
+        )}
+
+        {/* Security Test Bench Drawer */}
+        <div className="rounded-xl border border-slate-800 bg-slate-900/40 p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-mono font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+              <Shield className="h-3.5 w-3.5 text-amber-400" />
+              Security Injection Presets
+            </span>
+            <span className="text-[10px] text-slate-500 font-mono">Quick test vectors</span>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            {ATTACK_PRESETS.map((preset) => (
+              <button
+                key={preset.label}
+                onClick={() => loadPreset(preset)}
+                className={`text-left rounded-lg border p-2.5 transition-all text-xs ${
+                  preset.isMalicious
+                    ? 'border-red-500/20 bg-red-500/5 hover:bg-red-500/10 text-red-300'
+                    : 'border-slate-800 bg-slate-900/80 hover:bg-slate-800 text-slate-300'
+                }`}
+              >
+                <div className="font-mono font-semibold truncate text-[11px]">{preset.label}</div>
+                <div className="text-[10px] text-slate-400 mt-1 line-clamp-1">{preset.desc}</div>
+              </button>
+            ))}
+          </div>
+        </div>
+      </main>
+
+      {/* Footer */}
+      <footer className="text-center text-[11px] text-slate-500 font-mono border-t border-slate-900 pt-4">
+        Apex Technologies IAM Service • Node ID: #APX-DC-01 • Monitored in real-time by SQLGuard WAF
+      </footer>
     </div>
   );
 }
