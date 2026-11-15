@@ -2,8 +2,9 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Search, ShoppingBag, ShieldAlert, ArrowRight, Star, ExternalLink, Zap, AlertTriangle } from 'lucide-react';
+import { Search, ShoppingBag, ShieldAlert, ArrowRight, Star, ExternalLink } from 'lucide-react';
 import { recordInspection } from '../../../lib/store';
+import FloatingAttackBench from '../../../components/FloatingAttackBench';
 
 const PRODUCTS = [
   { id: 1, name: 'AeroPro Wireless Noise-Cancelling Headphones', category: 'Audio', price: 349.99, rating: 4.9, stock: 'In Stock' },
@@ -221,35 +222,15 @@ export default function ShopSphereStore() {
             ))}
           </div>
         </div>
-
-        {/* Floating Security Injection Testbench */}
-        <div className="rounded-xl border border-neutral-800 bg-neutral-900/60 p-4 space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-mono font-semibold uppercase tracking-wider text-neutral-400 flex items-center gap-1.5">
-              <Zap className="h-3.5 w-3.5 text-orange-400" />
-              SQL Injection Search Payloads (Testbench)
-            </span>
-            <span className="text-[10px] text-neutral-500 font-mono">Click to inject into store catalog API</span>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
-            {SEARCH_PRESETS.map((preset) => (
-              <button
-                key={preset.label}
-                onClick={() => handleSearch(preset.query)}
-                className={`text-left rounded-lg border p-2.5 transition-all text-xs ${
-                  preset.isMalicious
-                    ? 'border-red-500/20 bg-red-500/5 hover:bg-red-500/10 text-red-300'
-                    : 'border-neutral-800 bg-neutral-900 hover:bg-neutral-800 text-neutral-300'
-                }`}
-              >
-                <div className="font-mono font-semibold truncate text-[11px]">{preset.label}</div>
-                <div className="text-[10px] text-neutral-500 mt-1 line-clamp-1">{preset.desc}</div>
-              </button>
-            ))}
-          </div>
-        </div>
       </main>
+
+      {/* Floating Attack Bench Widget */}
+      <FloatingAttackBench
+        themeColor="orange"
+        title="ShopSphere Search Lab"
+        presets={SEARCH_PRESETS}
+        onSelect={(preset) => handleSearch(preset.query)}
+      />
 
       {/* Footer */}
       <footer className="border-t border-neutral-900 py-4 text-center text-[11px] font-mono text-neutral-500">

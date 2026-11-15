@@ -2,8 +2,9 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Activity, ShieldAlert, FileText, Lock, ArrowRight, ExternalLink, AlertOctagon, User, Hospital } from 'lucide-react';
+import { Activity, ShieldAlert, FileText, Lock, ArrowRight, ExternalLink, AlertOctagon, Hospital } from 'lucide-react';
 import { recordInspection } from '../../../lib/store';
+import FloatingAttackBench from '../../../components/FloatingAttackBench';
 
 const PATIENTS = [
   { id: '101', mrn: 'MRN-840192', name: 'Eleanor Vance', dob: '1984-04-12', diagnosis: 'Acute Bronchitis', physician: 'Dr. M. Ross', room: '304-B', status: 'Admitted' },
@@ -14,8 +15,8 @@ const PATIENTS = [
 
 const UNION_PRESETS = [
   { label: 'Normal: MRN #101', id: '101', isMalicious: false, desc: 'Benign record lookup for Eleanor Vance' },
-  { label: 'DB Fingerprint: 0 UNION SELECT 1, sqlite_version()...', id: '0 UNION SELECT 1, sqlite_version(), 3, 4, 5 --', isMalicious: true, desc: 'Exploits UNION SELECT to extract database server version' },
-  { label: 'PHI Exfil: 0 UNION SELECT id, ssn || \':\' || pass...', id: "0 UNION SELECT 1, ssn || ':' || password, 3, 4, 5 FROM users --", isMalicious: true, desc: 'Dumps confidential credentials and SSNs across tables' },
+  { label: 'DB Fingerprint: 0 UNION SELECT...', id: '0 UNION SELECT 1, sqlite_version(), 3, 4, 5 --', isMalicious: true, desc: 'Exploits UNION SELECT to extract database server version' },
+  { label: 'PHI Exfil: 0 UNION SELECT id, ssn...', id: "0 UNION SELECT 1, ssn || ':' || password, 3, 4, 5 FROM users --", isMalicious: true, desc: 'Dumps confidential credentials and SSNs across tables' },
   { label: 'Column Probe: 101 ORDER BY 8 --', id: '101 ORDER BY 8 --', isMalicious: true, desc: 'Determines column count via ORDER BY index injection' },
 ];
 
@@ -266,35 +267,15 @@ export default function MedVaultEHR() {
             </table>
           </div>
         </div>
-
-        {/* Security Testbench Drawer */}
-        <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-4 space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-mono font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-              <Activity className="h-3.5 w-3.5 text-teal-400" />
-              UNION-Based Injection Vectors (Testbench)
-            </span>
-            <span className="text-[10px] text-slate-500 font-mono">Click to test database exfiltration vectors</span>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
-            {UNION_PRESETS.map((preset) => (
-              <button
-                key={preset.label}
-                onClick={() => handleLookup(preset.id)}
-                className={`text-left rounded-lg border p-2.5 transition-all text-xs ${
-                  preset.isMalicious
-                    ? 'border-red-500/20 bg-red-500/5 hover:bg-red-500/10 text-red-300'
-                    : 'border-slate-800 bg-slate-900 hover:bg-slate-800 text-slate-300'
-                }`}
-              >
-                <div className="font-mono font-semibold truncate text-[11px]">{preset.label}</div>
-                <div className="text-[10px] text-slate-500 mt-1 line-clamp-1">{preset.desc}</div>
-              </button>
-            ))}
-          </div>
-        </div>
       </main>
+
+      {/* Floating Unobtrusive Attack Bench Widget */}
+      <FloatingAttackBench
+        themeColor="teal"
+        title="MedVault SQLi Lab"
+        presets={UNION_PRESETS}
+        onSelect={(preset) => handleLookup(preset.id)}
+      />
 
       {/* Footer */}
       <footer className="border-t border-slate-900 py-4 text-center text-[11px] font-mono text-slate-500">

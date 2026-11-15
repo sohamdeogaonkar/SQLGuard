@@ -2,8 +2,9 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Shield, Lock, Building2, AlertOctagon, CheckCircle2, ArrowRight, RefreshCw, KeyRound, ExternalLink } from 'lucide-react';
+import { Lock, AlertOctagon, CheckCircle2, ArrowRight, KeyRound, ExternalLink } from 'lucide-react';
 import { recordInspection } from '../../../lib/store';
+import FloatingAttackBench from '../../../components/FloatingAttackBench';
 
 const ATTACK_PRESETS = [
   {
@@ -28,7 +29,7 @@ const ATTACK_PRESETS = [
     isMalicious: true,
   },
   {
-    label: "Char Obfuscation",
+    label: 'Char Obfuscation',
     user: "' OR CHAR(49)=CHAR(49) --",
     pass: 'x',
     desc: 'Evades simple string filters using ASCII char codes',
@@ -99,7 +100,7 @@ export default function ApexPortalLogin() {
       </header>
 
       {/* Main Container */}
-      <main className="max-w-md w-full mx-auto my-10 space-y-6">
+      <main className="max-w-md w-full mx-auto my-auto space-y-6">
         {status === 'BLOCKED' && interceptEvent ? (
           /* Realistic WAF 403 Forbidden Interstitial */
           <div className="rounded-xl border border-red-500/30 bg-slate-900/90 p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-200">
@@ -250,35 +251,15 @@ export default function ApexPortalLogin() {
             </form>
           </div>
         )}
-
-        {/* Security Test Bench Drawer */}
-        <div className="rounded-xl border border-slate-800 bg-slate-900/40 p-4 space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-mono font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-              <Shield className="h-3.5 w-3.5 text-amber-400" />
-              Security Injection Presets
-            </span>
-            <span className="text-[10px] text-slate-500 font-mono">Quick test vectors</span>
-          </div>
-
-          <div className="grid grid-cols-2 gap-2">
-            {ATTACK_PRESETS.map((preset) => (
-              <button
-                key={preset.label}
-                onClick={() => loadPreset(preset)}
-                className={`text-left rounded-lg border p-2.5 transition-all text-xs ${
-                  preset.isMalicious
-                    ? 'border-red-500/20 bg-red-500/5 hover:bg-red-500/10 text-red-300'
-                    : 'border-slate-800 bg-slate-900/80 hover:bg-slate-800 text-slate-300'
-                }`}
-              >
-                <div className="font-mono font-semibold truncate text-[11px]">{preset.label}</div>
-                <div className="text-[10px] text-slate-400 mt-1 line-clamp-1">{preset.desc}</div>
-              </button>
-            ))}
-          </div>
-        </div>
       </main>
+
+      {/* Floating Attack Bench Widget */}
+      <FloatingAttackBench
+        themeColor="blue"
+        title="ApexPortal Auth Lab"
+        presets={ATTACK_PRESETS}
+        onSelect={(preset) => loadPreset(preset)}
+      />
 
       {/* Footer */}
       <footer className="text-center text-[11px] text-slate-500 font-mono border-t border-slate-900 pt-4">
