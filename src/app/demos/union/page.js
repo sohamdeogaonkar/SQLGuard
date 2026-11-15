@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { recordInspection } from '../../../lib/store';
 import FloatingAttackBench from '../../../components/FloatingAttackBench';
+import StageshowWindow from '../../../components/StageshowWindow';
 
 const PATIENTS = [
   {
@@ -115,17 +116,24 @@ export default function MedVaultEHR() {
   const selectedPatient = PATIENTS.find((p) => p.id === patientId.trim());
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-between font-sans selection:bg-teal-500 selection:text-white">
-      {/* Top Clinical Header */}
-      <div className="bg-teal-950 border-b border-teal-900/60 px-6 py-2 text-xs font-mono text-teal-300 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <span className="flex h-2 w-2 rounded-full bg-teal-400 animate-pulse" />
-          <span>ST. JUDE HEALTH SYSTEM • CLINICAL INTRANET PORTAL</span>
+    <div className="min-h-screen bg-[#070709] text-slate-100 flex flex-col justify-between p-2 sm:p-6 font-sans selection:bg-teal-500 selection:text-white">
+      <StageshowWindow
+        url="ehr.stjude-health.internal/records/patient-inquiry"
+        title="MedVault EHR System"
+        badge="HIPAA AUDIT ACTIVE"
+        badgeTone="emerald"
+        className="max-w-7xl w-full mx-auto my-auto min-h-[640px] flex flex-col"
+      >
+        {/* Top Clinical Header */}
+        <div className="bg-teal-950/80 border-b border-teal-900/60 px-6 py-2 text-xs font-mono text-teal-300 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="flex h-2 w-2 rounded-full bg-teal-400 animate-pulse" />
+            <span>ST. JUDE HEALTH SYSTEM • CLINICAL INTRANET PORTAL</span>
+          </div>
+          <div className="flex items-center gap-4 text-[11px] text-teal-400">
+            <span>CONFIDENTIAL MEDICAL RECORDS • HIPAA AUDIT ACTIVE</span>
+          </div>
         </div>
-        <div className="flex items-center gap-4 text-[11px] text-teal-400">
-          <span>CONFIDENTIAL MEDICAL RECORDS • HIPAA AUDIT ACTIVE</span>
-        </div>
-      </div>
 
       {/* Hospital EHR Navigation */}
       <header className="border-b border-slate-800 bg-slate-900/90 px-6 sm:px-8 py-3.5">
@@ -356,6 +364,12 @@ export default function MedVaultEHR() {
         </div>
       </main>
 
+        {/* Hospital Footer */}
+        <footer className="border-t border-slate-900 bg-slate-950 px-6 py-3 text-center text-[11px] font-mono text-slate-500">
+          St. Jude Health System • Electronic Health Record System v6.4 • HIPAA Security Standard
+        </footer>
+      </StageshowWindow>
+
       {/* Floating Attack Bench (No Backlinks) */}
       <FloatingAttackBench
         themeColor="teal"
@@ -363,11 +377,6 @@ export default function MedVaultEHR() {
         presets={UNION_PRESETS}
         onSelect={(preset) => handleLookup(preset.id)}
       />
-
-      {/* Hospital Footer */}
-      <footer className="border-t border-slate-900 bg-slate-950 px-6 py-4 text-center text-[11px] font-mono text-slate-500">
-        St. Jude Health System • Electronic Health Record System v6.4 • HIPAA Security Standard
-      </footer>
     </div>
   );
 }

@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { recordInspection } from '../../../lib/store';
 import FloatingAttackBench from '../../../components/FloatingAttackBench';
+import StageshowWindow from '../../../components/StageshowWindow';
 
 const PRODUCTS = [
   {
@@ -131,13 +132,20 @@ export default function ShopSphereStore() {
   }
 
   return (
-    <div className="min-h-screen bg-neutral-950 text-neutral-100 flex flex-col justify-between font-sans selection:bg-orange-500 selection:text-white">
-      {/* Top Retail Notice */}
-      <div className="bg-neutral-900 border-b border-neutral-800 text-neutral-400 px-4 py-1.5 text-center text-[11px] font-medium flex items-center justify-center gap-4">
-        <span>⚡ Summer Hardware Drop • Free Express Shipping on orders over $150</span>
-        <span className="text-neutral-600 hidden sm:inline">•</span>
-        <span className="hidden sm:inline">30-Day Hassle-Free Returns</span>
-      </div>
+    <div className="min-h-screen bg-[#070709] text-neutral-100 flex flex-col justify-between p-2 sm:p-6 font-sans selection:bg-orange-500 selection:text-white">
+      <StageshowWindow
+        url="store.shopsphere.io/catalog"
+        title="ShopSphere Hardware & Audio"
+        badge="SECURE CATALOG"
+        badgeTone="amber"
+        className="max-w-7xl w-full mx-auto my-auto min-h-[640px] flex flex-col"
+      >
+        {/* Top Retail Notice */}
+        <div className="bg-neutral-900 border-b border-neutral-800 text-neutral-400 px-4 py-1.5 text-center text-[11px] font-medium flex items-center justify-center gap-4">
+          <span>⚡ Summer Hardware Drop • Free Express Shipping on orders over $150</span>
+          <span className="text-neutral-600 hidden sm:inline">•</span>
+          <span className="hidden sm:inline">30-Day Hassle-Free Returns</span>
+        </div>
 
       {/* Main E-Commerce Header */}
       <header className="border-b border-neutral-800 bg-neutral-950/90 sticky top-0 z-40 backdrop-blur-md px-4 sm:px-8 py-3.5">
@@ -329,6 +337,22 @@ export default function ShopSphereStore() {
         )}
       </main>
 
+        {/* Authentic E-Commerce Footer */}
+        <footer className="border-t border-neutral-900 bg-neutral-950 px-4 sm:px-8 py-6 text-xs text-neutral-500">
+          <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-6">
+              <span className="text-neutral-300 font-semibold">ShopSphere Inc.</span>
+              <span>Worldwide Shipping</span>
+              <span>Privacy Policy</span>
+              <span>Terms of Sale</span>
+            </div>
+            <div className="flex items-center gap-3 text-[11px] font-mono text-neutral-600">
+              <span>Encrypted 256-bit SSL Checkout</span>
+            </div>
+          </div>
+        </footer>
+      </StageshowWindow>
+
       {/* Floating Attack Bench (No Backlinks) */}
       <FloatingAttackBench
         themeColor="orange"
@@ -336,21 +360,6 @@ export default function ShopSphereStore() {
         presets={SEARCH_PRESETS}
         onSelect={(preset) => handleSearch(preset.query)}
       />
-
-      {/* Authentic E-Commerce Footer */}
-      <footer className="border-t border-neutral-900 bg-neutral-950 px-4 sm:px-8 py-8 text-xs text-neutral-500">
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-6">
-            <span className="text-neutral-300 font-semibold">ShopSphere Inc.</span>
-            <span>Worldwide Shipping</span>
-            <span>Privacy Policy</span>
-            <span>Terms of Sale</span>
-          </div>
-          <div className="flex items-center gap-3 text-[11px] font-mono text-neutral-600">
-            <span>Encrypted 256-bit SSL Checkout</span>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 }

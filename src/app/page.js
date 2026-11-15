@@ -27,6 +27,7 @@ import Sidebar from '../components/Sidebar';
 import RequestInspector from '../components/RequestInspector';
 import CodeBlock from '../components/CodeBlock';
 import RiskBadge from '../components/RiskBadge';
+import ExecutionSimulator from '../components/ExecutionSimulator';
 import { getLogs, getStats, clearLogs, recordInspection } from '../lib/store';
 import { SQL_PATTERNS } from '../lib/patterns';
 import { analyzeASTMutation, tokenizeSQLStream, calculateShannonEntropy } from '../lib/lexer';
@@ -140,9 +141,10 @@ export default function SidebarDashboard() {
         if (isInput) document.activeElement?.blur();
       } else if (!isInput) {
         if (e.key === '1') setActiveTab('traffic');
-        if (e.key === '2') setActiveTab('lexer');
-        if (e.key === '3') setActiveTab('benchmark');
-        if (e.key === '4') setActiveTab('mitigation');
+        if (e.key === '2') setActiveTab('simulator');
+        if (e.key === '3') setActiveTab('lexer');
+        if (e.key === '4') setActiveTab('benchmark');
+        if (e.key === '5') setActiveTab('mitigation');
       }
     };
 
@@ -188,6 +190,7 @@ export default function SidebarDashboard() {
             <span className="font-mono text-xs text-zinc-500 uppercase tracking-wider">CONSOLE /</span>
             <span className="text-xs font-semibold text-zinc-200 uppercase font-mono">
               {activeTab === 'traffic' && 'LIVE TRAFFIC STREAM'}
+              {activeTab === 'simulator' && 'INTERACTIVE SQL INJECTION ANATOMY & AST SIMULATOR'}
               {activeTab === 'lexer' && 'LEXICAL TOKENIZER & AST GRAMMAR ENGINE'}
               {activeTab === 'benchmark' && 'ADVERSARIAL EVASION RESEARCH MATRIX'}
               {activeTab === 'mitigation' && 'PREPARED STATEMENT COMPILER PROOFS'}
@@ -365,7 +368,14 @@ export default function SidebarDashboard() {
             </div>
           )}
 
-          {/* TAB 2: LEXICAL AST & ENTROPY ENGINE (RESEARCH MODULE) */}
+          {/* TAB 2: INTERACTIVE SQL INJECTION ANATOMY & AST EXECUTION SIMULATOR */}
+          {activeTab === 'simulator' && (
+            <div className="animate-in fade-in duration-150">
+              <ExecutionSimulator />
+            </div>
+          )}
+
+          {/* TAB 3: LEXICAL AST & ENTROPY ENGINE (RESEARCH MODULE) */}
           {activeTab === 'lexer' && (
             <div className="space-y-6 max-w-4xl animate-in fade-in duration-150">
               <div className="flex items-center justify-between pb-2 border-b border-zinc-800">

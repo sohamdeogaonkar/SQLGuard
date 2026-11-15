@@ -7,3 +7,5 @@ out/
 /dist/
 .vinext/
 .cloudflare/
+.agents/
+skills-lock.json

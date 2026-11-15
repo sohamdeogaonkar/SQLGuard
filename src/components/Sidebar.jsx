@@ -7,14 +7,16 @@ import {
   Binary,
   FlaskConical,
   BookOpen,
+  Layers,
 } from 'lucide-react';
 
 export default function Sidebar({ activeTab, onTabChange }) {
   const navItems = [
-    { id: 'traffic', label: 'Traffic Stream', icon: Activity, badge: 'LIVE', shortcut: '1' },
-    { id: 'lexer', label: 'Lexical AST Engine', icon: Binary, shortcut: '2' },
-    { id: 'benchmark', label: 'Evasion Research Matrix', icon: FlaskConical, shortcut: '3' },
-    { id: 'mitigation', label: 'Compiler Defense Specs', icon: BookOpen, shortcut: '4' },
+    { id: 'traffic', label: 'Traffic Telemetry', icon: Activity, badge: 'LIVE', shortcut: '1' },
+    { id: 'simulator', label: 'SQLi Anatomy & AST', icon: Layers, badge: 'SIM', shortcut: '2' },
+    { id: 'lexer', label: 'Lexical Entropy Lab', icon: Binary, shortcut: '3' },
+    { id: 'benchmark', label: 'Evasion Research Matrix', icon: FlaskConical, shortcut: '4' },
+    { id: 'mitigation', label: 'Compiler Defense Specs', icon: BookOpen, shortcut: '5' },
   ];
 
   return (
@@ -40,7 +42,7 @@ export default function Sidebar({ activeTab, onTabChange }) {
             <span className="text-[10px] font-mono uppercase tracking-wider text-zinc-500 font-semibold">
               Security Console
             </span>
-            <span className="text-[9px] font-mono text-zinc-600">[KEYS 1-4]</span>
+            <span className="text-[9px] font-mono text-zinc-600">[KEYS 1-5]</span>
           </div>
 
           {navItems.map((item) => {
