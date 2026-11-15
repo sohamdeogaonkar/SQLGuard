@@ -17,8 +17,11 @@ import {
   Terminal,
   BookOpen,
   Cpu,
-  Clock,
-  Filter,
+  Binary,
+  FlaskConical,
+  CheckCircle2,
+  XCircle,
+  AlertTriangle,
 } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import RequestInspector from '../components/RequestInspector';
@@ -26,50 +29,73 @@ import CodeBlock from '../components/CodeBlock';
 import RiskBadge from '../components/RiskBadge';
 import { getLogs, getStats, clearLogs, recordInspection } from '../lib/store';
 import { SQL_PATTERNS } from '../lib/patterns';
+import { analyzeASTMutation, tokenizeSQLStream, calculateShannonEntropy } from '../lib/lexer';
 
-const TARGET_APPS = [
+const RESEARCH_BENCHMARKS = [
   {
-    name: 'ApexPortal',
-    type: 'Corporate IAM / SSO',
-    host: 'auth.apex-corp.internal',
-    endpoint: 'POST /api/v1/auth/login',
-    href: '/demos/login',
-    color: 'border-blue-500/30 text-blue-400 bg-blue-500/5',
-    dot: 'bg-blue-400',
+    technique: 'Inline Comment Fragmentation',
+    cveRef: 'CWE-89 / Bypass-01',
+    payload: "admin'/**/OR/**/1=1#",
+    naiveRegex: 'BYPASSED',
+    naiveReason: 'Fails whitespace-delimited regex rules',
+    sqlguard: 'BLOCKED (403)',
+    sqlguardReason: 'Lexer extracts raw comment tokens and isolates OR keyword',
+    status: 'DEFENDED',
   },
   {
-    name: 'ShopSphere',
-    type: 'Consumer E-Commerce',
-    host: 'shop.sphere-retail.com',
-    endpoint: 'GET /catalog/search?q=',
-    href: '/demos/search',
-    color: 'border-amber-500/30 text-amber-400 bg-amber-500/5',
-    dot: 'bg-amber-400',
+    technique: 'Scientific Notation Tautology',
+    cveRef: 'CWE-89 / Bypass-02',
+    payload: "' OR 1e0=1e0 --",
+    naiveRegex: 'BYPASSED',
+    naiveReason: 'Evades strict 1=1 integer literal match',
+    sqlguard: 'BLOCKED (403)',
+    sqlguardReason: 'Grammar evaluator recognizes floating-point tautological identity',
+    status: 'DEFENDED',
   },
   {
-    name: 'MedVault',
-    type: 'Clinical Healthcare EHR',
-    host: 'records.medvault-health.org',
-    endpoint: 'GET /api/records/mrn?id=',
-    href: '/demos/union',
-    color: 'border-emerald-500/30 text-emerald-400 bg-emerald-500/5',
-    dot: 'bg-emerald-400',
+    technique: 'Bitwise Logic Equivalence',
+    cveRef: 'CWE-89 / Bypass-03',
+    payload: "' OR (1^0)=1 --",
+    naiveRegex: 'BYPASSED',
+    naiveReason: 'XOR operator unhandled by common pattern sets',
+    sqlguard: 'BLOCKED (403)',
+    sqlguardReason: 'Expression lexer resolves bitwise truth table to boolean TRUE',
+    status: 'DEFENDED',
   },
-];
-
-const QUICK_PAYLOADS = [
-  { label: 'Normal Login', app: 'ApexPortal', payload: 'sarah.jenkins@apexcorp.internal' },
-  { label: 'Tautology Bypass', app: 'ApexPortal', payload: "' OR '1'='1' --" },
-  { label: 'Admin Cutoff', app: 'ApexPortal', payload: "admin'--" },
-  { label: 'Clean Search', app: 'ShopSphere', payload: 'wireless headphones' },
-  { label: 'UNION Exfiltration', app: 'ShopSphere', payload: "' UNION SELECT username, password FROM users --" },
-  { label: 'Destructive Stacked', app: 'ShopSphere', payload: "'; DROP TABLE products; --" },
-  { label: 'Normal Patient #101', app: 'MedVault', payload: '101' },
-  { label: 'DB Fingerprint', app: 'MedVault', payload: '0 UNION SELECT 1, sqlite_version(), 3, 4, 5 --' },
+  {
+    technique: 'Multi-Line Linebreak Mutation',
+    cveRef: 'CWE-89 / Bypass-04',
+    payload: "admin'\nOR\n'1'='1",
+    naiveRegex: 'BYPASSED',
+    naiveReason: 'Single-line regex flags fail across newline boundaries',
+    sqlguard: 'BLOCKED (403)',
+    sqlguardReason: 'Multiline regex engine tokenizes stream independent of CRLF',
+    status: 'DEFENDED',
+  },
+  {
+    technique: 'ASCII Char Function Obfuscation',
+    cveRef: 'CWE-89 / Bypass-05',
+    payload: "' OR CHAR(49)=CHAR(49) --",
+    naiveRegex: 'BYPASSED',
+    naiveReason: 'Zero quotation marks or literal numbers present',
+    sqlguard: 'BLOCKED (403)',
+    sqlguardReason: 'Function signature and character encoding detector triggers',
+    status: 'DEFENDED',
+  },
+  {
+    technique: 'UNION SELECT Keyword Fragment',
+    cveRef: 'CWE-89 / Bypass-06',
+    payload: '0 UNION/*random*/SELECT 1, 2, 3 --',
+    naiveRegex: 'BYPASSED',
+    naiveReason: 'Inline comment breaks UNION SELECT consecutive token match',
+    sqlguard: 'BLOCKED (403)',
+    sqlguardReason: 'Lexer filters comment tokens and reconstructs statement tokens',
+    status: 'DEFENDED',
+  },
 ];
 
 export default function SidebarDashboard() {
-  const [activeTab, setActiveTab] = useState('traffic'); // 'traffic' | 'rules' | 'dispatcher' | 'mitigation'
+  const [activeTab, setActiveTab] = useState('traffic'); // 'traffic' | 'lexer' | 'benchmark' | 'mitigation'
   const [logs, setLogs] = useState([]);
   const [stats, setStats] = useState({ total: 0, blocked: 0, allowed: 0, blockRate: 0, byApp: {} });
   const [activeAppFilter, setActiveAppFilter] = useState('ALL');
@@ -77,15 +103,13 @@ export default function SidebarDashboard() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedLog, setSelectedLog] = useState(null);
 
-  const searchInputRef = useRef(null);
-
-  // Dispatcher state
-  const [dispApp, setDispApp] = useState('ApexPortal');
-  const [dispPayload, setDispPayload] = useState("' OR '1'='1' --");
-  const [dispResult, setDispResult] = useState(null);
+  // Lexer workbench input state
+  const [lexerInput, setLexerInput] = useState("admin'/**/OR/**/1=1#");
 
   // Mitigation state
   const [mitApp, setMitApp] = useState('ApexPortal');
+
+  const searchInputRef = useRef(null);
 
   const refreshData = () => {
     setLogs(getLogs());
@@ -104,7 +128,6 @@ export default function SidebarDashboard() {
     window.addEventListener('sqlguard-log-cleared', handleNewLog);
     window.addEventListener('storage', handleStorage);
 
-    // Global keyboard shortcuts: / to search, 1-4 for tabs, Esc to close
     const handleGlobalKeyDown = (e) => {
       const activeTag = document.activeElement?.tagName?.toLowerCase();
       const isInput = activeTag === 'input' || activeTag === 'textarea' || activeTag === 'select';
@@ -117,8 +140,8 @@ export default function SidebarDashboard() {
         if (isInput) document.activeElement?.blur();
       } else if (!isInput) {
         if (e.key === '1') setActiveTab('traffic');
-        if (e.key === '2') setActiveTab('rules');
-        if (e.key === '3') setActiveTab('dispatcher');
+        if (e.key === '2') setActiveTab('lexer');
+        if (e.key === '3') setActiveTab('benchmark');
         if (e.key === '4') setActiveTab('mitigation');
       }
     };
@@ -133,75 +156,49 @@ export default function SidebarDashboard() {
     };
   }, []);
 
-  const handleDispatch = (e) => {
-    e?.preventDefault();
-    if (!dispPayload.trim()) return;
-
-    let endpoint = '/api/v1/auth/login';
-    let field = 'username';
-    if (dispApp === 'ShopSphere') {
-      endpoint = `/catalog/search?q=${encodeURIComponent(dispPayload)}`;
-      field = 'q';
-    } else if (dispApp === 'MedVault') {
-      endpoint = `/api/records/mrn?id=${encodeURIComponent(dispPayload)}`;
-      field = 'id';
-    }
-
-    const created = recordInspection({
-      targetApp: dispApp,
-      targetHost: dispApp === 'ApexPortal' ? 'auth.apex-corp.internal' : dispApp === 'ShopSphere' ? 'shop.sphere-retail.com' : 'records.medvault-health.org',
-      method: dispApp === 'ApexPortal' ? 'POST' : 'GET',
-      endpoint,
-      clientIp: '127.0.0.1',
-      field,
-      payload: dispPayload,
-    });
-
-    refreshData();
-    setDispResult(created);
-  };
-
-  const filteredLogs = logs.filter(log => {
+  const filteredLogs = logs.filter((log) => {
     if (activeAppFilter !== 'ALL' && log.targetApp !== activeAppFilter) return false;
     if (activeVerdictFilter === 'BLOCKED' && log.verdict !== 'BLOCKED') return false;
     if (activeVerdictFilter === 'ALLOWED' && log.verdict !== 'ALLOWED') return false;
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
-      const match =
+      return (
         log.payload?.toLowerCase().includes(q) ||
         log.clientIp?.toLowerCase().includes(q) ||
         log.endpoint?.toLowerCase().includes(q) ||
         log.targetApp?.toLowerCase().includes(q) ||
-        log.mitigationRule?.toLowerCase().includes(q);
-      if (!match) return false;
+        log.mitigationRule?.toLowerCase().includes(q)
+      );
     }
     return true;
   });
 
+  const lexerAnalysis = analyzeASTMutation(lexerInput);
+
   return (
     <div className="flex min-h-screen bg-zinc-950 text-zinc-100 font-sans selection:bg-amber-500/20 selection:text-amber-300">
-      {/* Sidebar Navigation */}
+      {/* Simplified, Clutter-Free Sidebar */}
       <Sidebar activeTab={activeTab} onTabChange={setActiveTab} />
 
       {/* Main Console Workspace */}
       <div className="flex-1 flex flex-col min-w-0">
-        {/* Top High-Density Control Bar */}
+        {/* Top Control Bar */}
         <header className="h-13 border-b border-zinc-800 bg-zinc-950 sticky top-0 z-20 px-6 py-2.5 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <span className="font-mono text-xs text-zinc-500 uppercase tracking-wider">CONSOLE /</span>
             <span className="text-xs font-semibold text-zinc-200 uppercase font-mono">
               {activeTab === 'traffic' && 'LIVE TRAFFIC STREAM'}
-              {activeTab === 'rules' && 'WAF SIGNATURE MATRIX'}
-              {activeTab === 'dispatcher' && 'PAYLOAD INJECTION BENCH'}
-              {activeTab === 'mitigation' && 'PREPARED STATEMENT SPECS'}
+              {activeTab === 'lexer' && 'LEXICAL TOKENIZER & AST GRAMMAR ENGINE'}
+              {activeTab === 'benchmark' && 'ADVERSARIAL EVASION RESEARCH MATRIX'}
+              {activeTab === 'mitigation' && 'PREPARED STATEMENT COMPILER PROOFS'}
             </span>
           </div>
 
           <div className="flex items-center gap-3">
-            {/* Real-time Telemetry Pill */}
+            {/* Real-time Telemetry Stats */}
             <div className="hidden lg:flex items-center gap-4 text-xs font-mono border-r border-zinc-800 pr-4">
               <span className="text-zinc-500">CAPTURED: <strong className="text-zinc-200">{stats.total}</strong></span>
-              <span className="text-zinc-500">BLOCKED: <strong className="text-rose-400 font-bold">{stats.blocked}</strong></span>
+              <span className="text-zinc-500">DROPPED: <strong className="text-rose-400 font-bold">{stats.blocked}</strong></span>
               <span className="text-zinc-500">ALLOWED: <strong className="text-emerald-400 font-bold">{stats.allowed}</strong></span>
               <span className="text-zinc-500">THREAT RATIO: <strong className="text-amber-400 font-bold">{stats.blockRate}%</strong></span>
             </div>
@@ -214,7 +211,10 @@ export default function SidebarDashboard() {
               <span>SYNC</span>
             </button>
             <button
-              onClick={() => { clearLogs(); refreshData(); }}
+              onClick={() => {
+                clearLogs();
+                refreshData();
+              }}
               className="flex items-center gap-1.5 rounded bg-rose-500/5 border border-rose-500/20 hover:bg-rose-500/10 px-2.5 py-1 text-xs font-mono text-rose-400 transition-colors"
             >
               <Trash2 className="h-3 w-3" />
@@ -225,59 +225,20 @@ export default function SidebarDashboard() {
 
         {/* Console Main Body */}
         <main className="p-6 flex-1 space-y-6">
-          {/* TAB 1: TRAFFIC ANALYZER */}
+          {/* TAB 1: TRAFFIC STREAM */}
           {activeTab === 'traffic' && (
             <div className="space-y-5 animate-in fade-in duration-150">
-              {/* Target App Topology Row */}
-              <div className="grid gap-3 md:grid-cols-3">
-                {TARGET_APPS.map((app) => {
-                  const count = logs.filter(l => l.targetApp === app.name).length;
-                  const blocked = logs.filter(l => l.targetApp === app.name && l.verdict === 'BLOCKED').length;
-
-                  return (
-                    <div
-                      key={app.name}
-                      className="group flex flex-col justify-between rounded-lg border border-zinc-800 bg-zinc-900/50 p-3.5 hover:border-zinc-700 transition-colors"
-                    >
-                      <div className="space-y-1.5">
-                        <div className="flex items-center justify-between">
-                          <span className={`inline-flex items-center gap-1.5 rounded px-2 py-0.5 text-[10px] font-mono font-medium ${app.color}`}>
-                            <span className={`h-1.5 w-1.5 rounded-full ${app.dot}`} />
-                            {app.name}
-                          </span>
-                          <span className="font-mono text-[11px] text-rose-400 font-bold">{blocked} DROPS</span>
-                        </div>
-
-                        <div className="font-mono text-xs text-zinc-300 font-medium truncate pt-1">
-                          {app.endpoint}
-                        </div>
-                      </div>
-
-                      <div className="mt-3 pt-2.5 border-t border-zinc-800/80 flex items-center justify-between text-xs font-mono">
-                        <span className="text-[11px] text-zinc-500">{count} events</span>
-                        <Link
-                          href={app.href}
-                          target="_blank"
-                          className="inline-flex items-center gap-1 text-zinc-300 hover:text-white transition-colors text-[11px] font-semibold"
-                        >
-                          Launch Product <ArrowUpRight className="h-3 w-3 text-zinc-500 group-hover:text-zinc-300" />
-                        </Link>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
               {/* Filter Controls & Search */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="flex flex-wrap items-center gap-2">
                   <div className="flex rounded-md border border-zinc-800 bg-zinc-900 p-0.5 text-xs font-mono">
                     {['ALL', 'ApexPortal', 'ShopSphere', 'MedVault'].map((app) => (
                       <button
                         key={app}
                         onClick={() => setActiveAppFilter(app)}
-                        className={`rounded px-2.5 py-1 transition-colors ${activeAppFilter === app ? 'bg-zinc-800 text-zinc-100 font-semibold shadow-sm' : 'text-zinc-500 hover:text-zinc-300'
-                          }`}
+                        className={`rounded px-2.5 py-1 transition-colors ${
+                          activeAppFilter === app ? 'bg-zinc-800 text-zinc-100 font-semibold shadow-sm' : 'text-zinc-500 hover:text-zinc-300'
+                        }`}
                       >
                         {app}
                       </button>
@@ -289,8 +250,9 @@ export default function SidebarDashboard() {
                       <button
                         key={v}
                         onClick={() => setActiveVerdictFilter(v)}
-                        className={`rounded px-2.5 py-1 transition-colors ${activeVerdictFilter === v ? 'bg-zinc-800 text-zinc-100 font-semibold shadow-sm' : 'text-zinc-500 hover:text-zinc-300'
-                          }`}
+                        className={`rounded px-2.5 py-1 transition-colors ${
+                          activeVerdictFilter === v ? 'bg-zinc-800 text-zinc-100 font-semibold shadow-sm' : 'text-zinc-500 hover:text-zinc-300'
+                        }`}
                       >
                         {v}
                       </button>
@@ -321,9 +283,9 @@ export default function SidebarDashboard() {
                     <tr>
                       <th className="px-3 py-2">Time</th>
                       <th className="px-3 py-2">Method</th>
-                      <th className="px-3 py-2">Target App</th>
+                      <th className="px-3 py-2">Target Host</th>
                       <th className="px-3 py-2">Route</th>
-                      <th className="px-3 py-2">Payload</th>
+                      <th className="px-3 py-2">Parameter Payload</th>
                       <th className="px-3 py-2">Rule Trigger</th>
                       <th className="px-3 py-2">Latency</th>
                       <th className="px-3 py-2">Status</th>
@@ -350,10 +312,13 @@ export default function SidebarDashboard() {
                               {new Date(log.timestamp).toLocaleTimeString()}
                             </td>
                             <td className="px-3 py-2 whitespace-nowrap">
-                              <span className={`px-1.5 py-0.5 rounded font-bold text-[9px] ${log.method === 'POST'
-                                ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
-                                : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                                }`}>
+                              <span
+                                className={`px-1.5 py-0.5 rounded font-bold text-[9px] ${
+                                  log.method === 'POST'
+                                    ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
+                                    : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                                }`}
+                              >
                                 {log.method}
                               </span>
                             </td>
@@ -374,10 +339,11 @@ export default function SidebarDashboard() {
                             </td>
                             <td className="px-3 py-2 whitespace-nowrap">
                               <span
-                                className={`inline-flex items-center gap-1 rounded px-2 py-0.5 text-[10px] font-bold ${isBlocked
-                                  ? 'bg-rose-500/10 text-rose-400 border border-rose-500/30'
-                                  : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
-                                  }`}
+                                className={`inline-flex items-center gap-1 rounded px-2 py-0.5 text-[10px] font-bold ${
+                                  isBlocked
+                                    ? 'bg-rose-500/10 text-rose-400 border border-rose-500/30'
+                                    : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
+                                }`}
                               >
                                 {log.httpStatus} {log.verdict}
                               </span>
@@ -403,176 +369,185 @@ export default function SidebarDashboard() {
             </div>
           )}
 
-          {/* TAB 2: WAF SIGNATURE RULES */}
-          {activeTab === 'rules' && (
-            <div className="space-y-4 animate-in fade-in duration-150">
+          {/* TAB 2: LEXICAL AST & ENTROPY ENGINE (RESEARCH MODULE) */}
+          {activeTab === 'lexer' && (
+            <div className="space-y-6 max-w-4xl animate-in fade-in duration-150">
               <div className="flex items-center justify-between pb-2 border-b border-zinc-800">
                 <span className="text-xs font-mono font-semibold uppercase text-zinc-200">
-                  DETERMINISTIC SIGNATURE MATRIX ({SQL_PATTERNS.length})
+                  GRAMMAR-BASED LEXICAL TOKENIZER &amp; SHANNON ENTROPY
                 </span>
                 <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded">
-                  EDGE EVALUATION ACTIVE
+                  RESEARCH MODULE
                 </span>
               </div>
 
-              <div className="grid gap-2.5">
-                {SQL_PATTERNS.map((p) => {
-                  const matchCount = logs.reduce((acc, l) => {
-                    return acc + (l.matches?.filter(m => m.patternId === p.id).length || 0);
-                  }, 0);
+              {/* Interactive Lexer Input */}
+              <div className="rounded-lg border border-zinc-800 bg-zinc-900/60 p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-mono uppercase text-zinc-400 font-semibold">
+                    INPUT QUERY PARAMETER TO DECOMPOSE:
+                  </span>
+                  <div className="flex gap-1.5">
+                    {[
+                      "admin'/**/OR/**/1=1#",
+                      "' OR 1=1 --",
+                      "' UNION SELECT id, password FROM users --",
+                      "sarah.jenkins@apexcorp.internal",
+                    ].map((sample) => (
+                      <button
+                        key={sample}
+                        onClick={() => setLexerInput(sample)}
+                        className="rounded border border-zinc-800 bg-zinc-950 px-2 py-0.5 text-[10px] font-mono text-zinc-400 hover:text-zinc-200 transition-colors"
+                      >
+                        {sample.slice(0, 18)}...
+                      </button>
+                    ))}
+                  </div>
+                </div>
 
-                  return (
+                <input
+                  type="text"
+                  value={lexerInput}
+                  onChange={(e) => setLexerInput(e.target.value)}
+                  className="w-full rounded border border-zinc-700 bg-zinc-950 px-3.5 py-2 text-xs font-mono text-amber-300 focus:border-amber-500/50 focus:outline-none"
+                />
+              </div>
+
+              {/* Entropy & Grammar State Cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 font-mono text-xs">
+                <div className="rounded-lg border border-zinc-800 bg-zinc-900/40 p-3.5 space-y-1">
+                  <span className="text-[10px] text-zinc-500 uppercase block">Shannon Entropy (H)</span>
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-xl font-bold text-white">{lexerAnalysis.entropy}</span>
+                    <span className="text-[10px] text-zinc-400">bits / char</span>
+                  </div>
+                  <span
+                    className={`text-[10px] block font-semibold ${
+                      lexerAnalysis.entropy > 4.0 ? 'text-amber-400' : 'text-emerald-400'
+                    }`}
+                  >
+                    {lexerAnalysis.entropyVerdict}
+                  </span>
+                </div>
+
+                <div className="rounded-lg border border-zinc-800 bg-zinc-900/40 p-3.5 space-y-1">
+                  <span className="text-[10px] text-zinc-500 uppercase block">Token Stream Count</span>
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-xl font-bold text-white">{lexerAnalysis.tokenCount}</span>
+                    <span className="text-[10px] text-zinc-400">discrete tokens</span>
+                  </div>
+                  <span className="text-[10px] text-zinc-400 block font-semibold">Decomposed via SQL Lexer</span>
+                </div>
+
+                <div className="rounded-lg border border-zinc-800 bg-zinc-900/40 p-3.5 space-y-1">
+                  <span className="text-[10px] text-zinc-500 uppercase block">AST Grammar Transition</span>
+                  <div className="text-sm font-bold text-rose-400 truncate">{lexerAnalysis.grammarVerdict}</div>
+                  <span className="text-[10px] text-zinc-400 block truncate">{lexerAnalysis.astShift}</span>
+                </div>
+              </div>
+
+              {/* Visual Token Stream */}
+              <div className="rounded-lg border border-zinc-800 bg-zinc-900/40 p-4 space-y-2.5">
+                <span className="text-[10px] font-mono text-zinc-400 uppercase font-semibold block">
+                  PARSED TOKEN STREAM (CHIPS):
+                </span>
+                <div className="flex flex-wrap gap-2">
+                  {lexerAnalysis.tokens.map((t, idx) => (
                     <div
-                      key={p.id}
-                      className="rounded-lg border border-zinc-800 bg-zinc-900/40 p-3.5 space-y-2 hover:border-zinc-700 transition-colors font-mono text-xs"
+                      key={idx}
+                      className={`flex items-center gap-1.5 rounded border px-2.5 py-1 text-xs font-mono ${
+                        t.risk === 'HIGH' || t.risk === 'CRITICAL'
+                          ? 'border-rose-500/40 bg-rose-500/10 text-rose-300'
+                          : 'border-zinc-800 bg-zinc-950 text-zinc-300'
+                      }`}
                     >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <span className="font-semibold text-zinc-200 text-xs">{p.name}</span>
-                          <span className="text-[10px] text-zinc-500">ID: RULE-SQLI-{p.id.toUpperCase()}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-[10px] text-amber-400 font-bold">{matchCount} HITS</span>
-                          <span className={`rounded px-1.5 py-0.5 text-[10px] font-bold ${p.severity >= 9 ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20' :
-                            p.severity >= 7 ? 'bg-orange-500/10 text-orange-400 border border-orange-500/20' :
-                              'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20'
-                            }`}>
-                            SEVERITY {p.severity}/10
-                          </span>
-                        </div>
-                      </div>
-
-                      <p className="text-zinc-400 font-sans text-xs">{p.description}</p>
-
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-2 border-t border-zinc-800/80 text-[11px]">
-                        <div className="text-zinc-500 truncate max-w-md">
-                          Pattern: <code className="text-zinc-300 bg-zinc-950 px-1.5 py-0.5 rounded border border-zinc-850">{String(p.regex)}</code>
-                        </div>
-                        <div className="text-zinc-500">
-                          Exploit Vector: <code className="text-amber-400 bg-zinc-950 px-1.5 py-0.5 rounded border border-zinc-850">{p.example}</code>
-                        </div>
-                      </div>
+                      <span className="text-[9px] text-zinc-500 uppercase font-semibold">{t.type}:</span>
+                      <span className="font-bold">{t.value}</span>
                     </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* TAB 3: PAYLOAD DISPATCHER */}
-          {activeTab === 'dispatcher' && (
-            <div className="space-y-5 max-w-3xl animate-in fade-in duration-150">
-              <div className="flex items-center justify-between pb-2 border-b border-zinc-800">
-                <span className="text-xs font-mono font-semibold uppercase text-zinc-200">
-                  IN-LINE PAYLOAD DISPATCH BENCH
-                </span>
-                <span className="text-[10px] font-mono text-zinc-500">TEST INCOMING PARAMETER EVALUATION</span>
-              </div>
-
-              {/* Quick Preset Buttons */}
-              <div className="space-y-1.5">
-                <span className="text-[10px] font-mono text-zinc-500 uppercase font-semibold">PRELOADED VECTORS:</span>
-                <div className="flex flex-wrap gap-1.5">
-                  {QUICK_PAYLOADS.map((q) => (
-                    <button
-                      key={q.label}
-                      onClick={() => {
-                        setDispApp(q.app);
-                        setDispPayload(q.payload);
-                      }}
-                      className="rounded border border-zinc-800 bg-zinc-900/80 hover:bg-zinc-800 px-2 py-1 text-xs font-mono text-zinc-300 transition-colors"
-                    >
-                      {q.label}
-                    </button>
                   ))}
                 </div>
               </div>
 
-              {/* Dispatch Form */}
-              <form onSubmit={handleDispatch} className="rounded-lg border border-zinc-800 bg-zinc-900/60 p-5 space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-[10px] font-mono uppercase text-zinc-400 mb-1 font-semibold">Target Application</label>
-                    <select
-                      value={dispApp}
-                      onChange={(e) => setDispApp(e.target.value)}
-                      className="w-full rounded border border-zinc-700 bg-zinc-800 px-3 py-2 text-xs font-mono text-zinc-200 focus:outline-none"
-                    >
-                      <option value="ApexPortal">ApexPortal (auth.apex-corp.internal)</option>
-                      <option value="ShopSphere">ShopSphere (shop.sphere-retail.com)</option>
-                      <option value="MedVault">MedVault (records.medvault-health.org)</option>
-                    </select>
+              {/* AST Grammar Comparison */}
+              <div className="rounded-lg border border-zinc-800 bg-zinc-900/40 p-4 space-y-3 text-xs font-mono">
+                <span className="text-[10px] text-zinc-400 uppercase font-semibold block">
+                  AST TREE MUTATION EXPLANATION:
+                </span>
+                <div className="grid sm:grid-cols-2 gap-3 text-[11px]">
+                  <div className="rounded bg-zinc-950 p-3 border border-zinc-800 space-y-1">
+                    <span className="text-emerald-400 font-bold block">INTENDED QUERY PARSE TREE</span>
+                    <p className="text-zinc-400 leading-relaxed">
+                      <code>SELECT * FROM users WHERE (col = ?literal)</code>
+                      <br />
+                      The parser expects a single leaf node value in the syntax tree.
+                    </p>
                   </div>
-
-                  <div>
-                    <label className="block text-[10px] font-mono uppercase text-zinc-400 mb-1 font-semibold">HTTP Endpoint Route</label>
-                    <input
-                      type="text"
-                      disabled
-                      value={
-                        dispApp === 'ApexPortal'
-                          ? 'POST /api/v1/auth/login'
-                          : dispApp === 'ShopSphere'
-                            ? 'GET /catalog/search?q='
-                            : 'GET /api/records/mrn?id='
-                      }
-                      className="w-full rounded border border-zinc-800 bg-zinc-950 px-3 py-2 text-xs font-mono text-zinc-500 cursor-not-allowed"
-                    />
+                  <div className="rounded bg-zinc-950 p-3 border border-zinc-800 space-y-1">
+                    <span className="text-rose-400 font-bold block">INJECTED SYNTACTIC MUTATION</span>
+                    <p className="text-zinc-400 leading-relaxed">
+                      <code>SELECT * FROM users WHERE (col = 'admin') OR (1=1)</code>
+                      <br />
+                      The token stream forces a binary expression node that collapses to TRUE.
+                    </p>
                   </div>
                 </div>
-
-                <div>
-                  <label className="block text-[10px] font-mono uppercase text-zinc-400 mb-1 font-semibold">Parameter Payload Input</label>
-                  <textarea
-                    rows={3}
-                    value={dispPayload}
-                    onChange={(e) => setDispPayload(e.target.value)}
-                    placeholder="Enter SQL parameter input string..."
-                    className="w-full rounded border border-zinc-700 bg-zinc-950 p-3 text-xs font-mono text-zinc-100 placeholder-zinc-600 focus:border-amber-500/50 focus:outline-none"
-                  />
-                </div>
-
-                <div className="flex justify-between items-center pt-1">
-                  <span className="text-[10px] font-mono text-zinc-500">DISPATCHES EVENT &amp; RE-EVALUATES WAF RULES</span>
-                  <button
-                    type="submit"
-                    className="rounded bg-amber-500 hover:bg-amber-400 px-4 py-2 text-xs font-mono font-bold text-zinc-950 transition-colors shadow-sm"
-                  >
-                    DISPATCH REQUEST →
-                  </button>
-                </div>
-              </form>
-
-              {/* Evaluation Result */}
-              {dispResult && (
-                <div className="rounded-lg border border-zinc-800 bg-zinc-900/60 p-5 space-y-4 animate-in fade-in duration-150">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-mono uppercase tracking-wider text-zinc-400 font-semibold">EVALUATION VERDICT</span>
-                    <span className={`inline-flex items-center gap-1 rounded px-2.5 py-0.5 text-xs font-mono font-bold ${dispResult.verdict === 'BLOCKED'
-                      ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
-                      : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                      }`}>
-                      {dispResult.httpStatus} {dispResult.verdict}
-                    </span>
-                  </div>
-
-                  <p className="text-xs text-zinc-300 font-mono leading-relaxed">{dispResult.explanation}</p>
-
-                  <div className="space-y-2">
-                    <span className="text-[10px] font-mono text-zinc-500 uppercase font-semibold block">Vulnerable Query Translation (Concatenation)</span>
-                    <CodeBlock code={dispResult.vulnerableSql} highlight={dispResult.verdict === 'BLOCKED'} />
-                  </div>
-
-                  <div className="space-y-2">
-                    <span className="text-[10px] font-mono text-zinc-500 uppercase font-semibold block">Secure Query Translation (Parameterized Statement)</span>
-                    <CodeBlock code={`${dispResult.secureSql}\n-- Bound: ${JSON.stringify(dispResult.secureParams)}`} />
-                  </div>
-                </div>
-              )}
+              </div>
             </div>
           )}
 
-          {/* TAB 4: MITIGATION SPECS */}
+          {/* TAB 3: ADVERSARIAL EVASION BENCHMARK MATRIX */}
+          {activeTab === 'benchmark' && (
+            <div className="space-y-5 max-w-5xl animate-in fade-in duration-150">
+              <div className="flex items-center justify-between pb-2 border-b border-zinc-800">
+                <span className="text-xs font-mono font-semibold uppercase text-zinc-200">
+                  ADVERSARIAL WAF EVASION BENCHMARK MATRIX
+                </span>
+                <span className="text-[10px] font-mono text-zinc-400">RESEARCH BENCHMARK</span>
+              </div>
+
+              <div className="overflow-x-auto rounded-lg border border-zinc-800 bg-zinc-900/40 font-mono text-xs">
+                <table className="w-full text-left text-[11px]">
+                  <thead className="border-b border-zinc-800 bg-zinc-900/90 text-zinc-400 uppercase text-[10px]">
+                    <tr>
+                      <th className="px-3.5 py-2.5">Evasion Technique</th>
+                      <th className="px-3.5 py-2.5">Adversarial Payload</th>
+                      <th className="px-3.5 py-2.5">Legacy Regex Filter</th>
+                      <th className="px-3.5 py-2.5">SQLGuard Lexical WAF</th>
+                      <th className="px-3.5 py-2.5">Defense Mechanism</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-zinc-800/60">
+                    {RESEARCH_BENCHMARKS.map((b, idx) => (
+                      <tr key={idx} className="hover:bg-zinc-850/40 transition-colors">
+                        <td className="px-3.5 py-2.5 whitespace-nowrap">
+                          <span className="font-semibold text-zinc-200 block">{b.technique}</span>
+                          <span className="text-[10px] text-zinc-500">{b.cveRef}</span>
+                        </td>
+                        <td className="px-3.5 py-2.5 text-amber-300 font-mono max-w-[200px] truncate">
+                          {b.payload}
+                        </td>
+                        <td className="px-3.5 py-2.5 whitespace-nowrap">
+                          <span className="inline-flex items-center gap-1 rounded bg-rose-500/10 border border-rose-500/20 px-2 py-0.5 text-[10px] font-bold text-rose-400">
+                            <XCircle className="h-3 w-3" /> {b.naiveRegex}
+                          </span>
+                        </td>
+                        <td className="px-3.5 py-2.5 whitespace-nowrap">
+                          <span className="inline-flex items-center gap-1 rounded bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 text-[10px] font-bold text-emerald-400">
+                            <CheckCircle2 className="h-3 w-3" /> {b.sqlguard}
+                          </span>
+                        </td>
+                        <td className="px-3.5 py-2.5 text-zinc-400 text-[10px] max-w-xs">
+                          {b.sqlguardReason}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 4: COMPILER DEFENSE SPECS */}
           {activeTab === 'mitigation' && (
             <div className="space-y-5 max-w-4xl animate-in fade-in duration-150">
               <div className="flex items-center justify-between pb-2 border-b border-zinc-800">
@@ -582,14 +557,15 @@ export default function SidebarDashboard() {
                 <span className="text-[10px] font-mono text-zinc-500">AST COMPILER LEVEL DEFENSE</span>
               </div>
 
-              {/* App selector */}
+              {/* App Selector */}
               <div className="flex rounded-md border border-zinc-800 bg-zinc-900 p-0.5 text-xs font-mono w-fit">
                 {['ApexPortal', 'ShopSphere', 'MedVault'].map((app) => (
                   <button
                     key={app}
                     onClick={() => setMitApp(app)}
-                    className={`rounded px-3 py-1.5 transition-colors ${mitApp === app ? 'bg-zinc-800 text-zinc-100 font-semibold shadow-sm' : 'text-zinc-500 hover:text-zinc-300'
-                      }`}
+                    className={`rounded px-3 py-1.5 transition-colors ${
+                      mitApp === app ? 'bg-zinc-800 text-zinc-100 font-semibold shadow-sm' : 'text-zinc-500 hover:text-zinc-300'
+                    }`}
                   >
                     {app}
                   </button>
@@ -610,8 +586,8 @@ export default function SidebarDashboard() {
                       mitApp === 'ApexPortal'
                         ? `// INSECURE CONCATENATION\nconst query = \`SELECT * FROM users\n  WHERE username = '\${username}'\n  AND password = '\${password}'\`;\nawait db.query(query);`
                         : mitApp === 'ShopSphere'
-                          ? `// INSECURE CONCATENATION\nconst query = \`SELECT * FROM products\n  WHERE name LIKE '%\${q}%'\`;\nawait db.query(query);`
-                          : `// INSECURE CONCATENATION\nconst query = \`SELECT * FROM records\n  WHERE id = \${mrnId}\`;\nawait db.query(query);`
+                        ? `// INSECURE CONCATENATION\nconst query = \`SELECT * FROM products\n  WHERE name LIKE '%\${q}%'\`;\nawait db.query(query);`
+                        : `// INSECURE CONCATENATION\nconst query = \`SELECT * FROM records\n  WHERE id = \${mrnId}\`;\nawait db.query(query);`
                     }
                   />
                   <p className="text-[11px] text-zinc-400 font-mono">
@@ -631,8 +607,8 @@ export default function SidebarDashboard() {
                       mitApp === 'ApexPortal'
                         ? `// PARAMETERIZED STATEMENT\nconst query = 'SELECT * FROM users WHERE username = ? AND password = ?';\nawait db.query(query, [username, password]);`
                         : mitApp === 'ShopSphere'
-                          ? `// PARAMETERIZED STATEMENT\nconst query = 'SELECT * FROM products WHERE name LIKE ?';\nawait db.query(query, [\`%\${q}%\`]);`
-                          : `// PARAMETERIZED STATEMENT\nconst query = 'SELECT * FROM records WHERE id = ?';\nawait db.query(query, [parseInt(mrnId)]);`
+                        ? `// PARAMETERIZED STATEMENT\nconst query = 'SELECT * FROM products WHERE name LIKE ?';\nawait db.query(query, [\`%\${q}%\`]);`
+                        : `// PARAMETERIZED STATEMENT\nconst query = 'SELECT * FROM records WHERE id = ?';\nawait db.query(query, [parseInt(mrnId)]);`
                     }
                   />
                   <p className="text-[11px] text-zinc-400 font-mono">

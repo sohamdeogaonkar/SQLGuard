@@ -1,31 +1,20 @@
 'use client';
 
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
 import {
   Shield,
   Activity,
-  Layers,
-  Terminal,
-  BookOpen,
-  ExternalLink,
   Cpu,
+  Binary,
+  FlaskConical,
+  BookOpen,
 } from 'lucide-react';
 
 export default function Sidebar({ activeTab, onTabChange }) {
-  const pathname = usePathname();
-
   const navItems = [
-    { id: 'traffic', label: 'Traffic Analyzer', icon: Activity, badge: 'LIVE', shortcut: '1' },
-    { id: 'rules', label: 'WAF Signature Rules', icon: Layers, count: '12', shortcut: '2' },
-    { id: 'dispatcher', label: 'Payload Dispatcher', icon: Terminal, shortcut: '3' },
-    { id: 'mitigation', label: 'Mitigation Specs', icon: BookOpen, shortcut: '4' },
-  ];
-
-  const targetApps = [
-    { name: 'ApexPortal', type: 'Corporate SSO', href: '/demos/login', dot: 'bg-blue-400' },
-    { name: 'ShopSphere', type: 'E-Commerce Store', href: '/demos/search', dot: 'bg-amber-400' },
-    { name: 'MedVault', type: 'Clinical EHR', href: '/demos/union', dot: 'bg-emerald-400' },
+    { id: 'traffic', label: 'Traffic Stream', icon: Activity, badge: 'LIVE', shortcut: '1' },
+    { id: 'lexer', label: 'Lexical AST Engine', icon: Binary, shortcut: '2' },
+    { id: 'benchmark', label: 'Evasion Research Matrix', icon: FlaskConical, shortcut: '3' },
+    { id: 'mitigation', label: 'Compiler Defense Specs', icon: BookOpen, shortcut: '4' },
   ];
 
   return (
@@ -77,11 +66,6 @@ export default function Sidebar({ activeTab, onTabChange }) {
                       {item.badge}
                     </span>
                   )}
-                  {item.count && (
-                    <span className="rounded bg-zinc-800 px-1.5 py-0.2 text-[10px] font-mono text-zinc-400">
-                      {item.count}
-                    </span>
-                  )}
                   <kbd className="hidden sm:inline-block rounded border border-zinc-800 bg-zinc-900 px-1 font-mono text-[9px] text-zinc-500">
                     {item.shortcut}
                   </kbd>
@@ -89,36 +73,6 @@ export default function Sidebar({ activeTab, onTabChange }) {
               </button>
             );
           })}
-        </div>
-
-        {/* Monitored Products Section */}
-        <div className="space-y-1.5 pt-3 border-t border-zinc-800">
-          <div className="flex items-center justify-between px-2 mb-1.5">
-            <span className="text-[10px] font-mono uppercase tracking-wider text-zinc-500 font-semibold">
-              Target Applications
-            </span>
-            <span className="text-[9px] font-mono text-zinc-600">ISOLATED APPS</span>
-          </div>
-
-          <div className="space-y-1">
-            {targetApps.map((app) => (
-              <Link
-                key={app.name}
-                href={app.href}
-                target="_blank"
-                className="group flex items-center justify-between rounded-lg border border-zinc-800 bg-zinc-900/50 px-2.5 py-2 text-xs hover:border-zinc-700 hover:bg-zinc-900 transition-all"
-              >
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className={`h-1.5 w-1.5 rounded-full ${app.dot}`} />
-                    <span className="font-semibold text-zinc-200 group-hover:text-white text-xs">{app.name}</span>
-                  </div>
-                  <span className="text-[10px] text-zinc-500 font-mono block pl-3.5">{app.type}</span>
-                </div>
-                <ExternalLink className="h-3 w-3 text-zinc-500 group-hover:text-zinc-300 transition-colors" />
-              </Link>
-            ))}
-          </div>
         </div>
       </div>
 
@@ -135,8 +89,8 @@ export default function Sidebar({ activeTab, onTabChange }) {
           <span className="text-zinc-300">0.8 ms</span>
         </div>
         <div className="flex items-center justify-between">
-          <span className="text-zinc-500">Edge Platform:</span>
-          <span className="text-zinc-300">Cloudflare Workers</span>
+          <span className="text-zinc-500">Architecture:</span>
+          <span className="text-zinc-300">Lexer + AST Engine</span>
         </div>
       </div>
     </aside>
