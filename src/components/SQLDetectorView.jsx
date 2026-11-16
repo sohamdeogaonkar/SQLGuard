@@ -92,34 +92,41 @@ export default function SQLDetectorView({ onLogRecorded, initialQuery }) {
   useEffect(() => {
     if (initialQuery !== undefined && initialQuery !== query) {
       setQuery(initialQuery);
-      runDetection(initialQuery);
+      setResult(null);
+      setMlResult(null);
+      setLexerData(null);
     }
   }, [initialQuery]);
 
-  // Initial detection and rule listener
+  // Initial rule load & rule change listener (do not auto-run on initial mount)
   useEffect(() => {
     refreshRules();
-    runDetection(query);
 
     const handleRulesChanged = () => {
       refreshRules();
-      runDetection(query);
+      if (result) {
+        runDetection(query);
+      }
     };
 
     window.addEventListener('sqlguard-rules-changed', handleRulesChanged);
     return () => window.removeEventListener('sqlguard-rules-changed', handleRulesChanged);
-  }, []);
+  }, [query, result, runDetection]);
 
   const handlePresetClick = (val) => {
     setQuery(val);
-    runDetection(val);
+    setResult(null);
+    setMlResult(null);
+    setLexerData(null);
   };
 
   const handleToggleRule = (ruleId) => {
     const isCurrentlyDisabled = disabledIds.includes(ruleId);
     setRuleEnabled(ruleId, isCurrentlyDisabled);
     refreshRules();
-    runDetection(query);
+    if (result) {
+      runDetection(query);
+    }
   };
 
   const handleTestInTab = (examplePayload) => {
@@ -208,7 +215,14 @@ export default function SQLDetectorView({ onLogRecorded, initialQuery }) {
           <div className="rounded-xl border border-zinc-800 bg-zinc-950 p-2.5 focus-within:border-amber-500/50">
             <textarea
               value={query}
-              onChange={(e) => setQuery(e.target.value)}
+              onChange={(e) => {
+                setQuery(e.target.value);
+                if (result) {
+                  setResult(null);
+                  setMlResult(null);
+                  setLexerData(null);
+                }
+              }}
               onKeyDown={(e) => {
                 if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
                   e.preventDefault();
@@ -249,7 +263,7 @@ export default function SQLDetectorView({ onLogRecorded, initialQuery }) {
           </div>
 
           {/* Results Block */}
-          {result && (
+          {result ? (
             <div className="space-y-3 font-mono">
               {/* Dual-Engine Verdict Banner */}
               <div
@@ -407,6 +421,10 @@ export default function SQLDetectorView({ onLogRecorded, initialQuery }) {
                   </div>
                 </div>
               )}
+            </div>
+          ) : (
+            <div className="rounded-xl border border-dashed border-zinc-800/80 p-6 text-center text-xs font-mono text-zinc-500">
+              Enter a query or select a preset above, then click <strong className="text-amber-400">⚡ Analyze</strong> to inspect.
             </div>
           )}
         </div>
