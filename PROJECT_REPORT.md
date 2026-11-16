@@ -13,20 +13,14 @@
 | | 2.1 Existing System and Its Limitations | 4 |
 | | 2.2 Proposed System Overview | 5 |
 | **3** | **CHAPTER-3: SYSTEM DESIGN** | **6** |
-| | 3.1 System Requirements | 6 |
-| | 3.1.1 Hardware Requirements | 6 |
-| | 3.1.2 Software Requirements | 6 |
-| | 3.2 System Architecture | 7 |
-| | 3.3 Module Description | 8 |
-| **4** | **CHAPTER-4: IMPLEMENTATION AND TESTING** | **10** |
-| | 4.1 Experimental Setup | 10 |
-| | 4.2 Flowchart | 11 |
-| | 4.3 Screenshots and Description | 12 |
-| | 4.4 Testing | 14 |
-| **5** | **CHAPTER-5: CONCLUSION AND FUTURE SCOPE** | **16** |
-| | 5.1 Conclusion | 16 |
-| | 5.2 Future Scope | 16 |
-| **6** | **REFERENCES** | **17** |
+| | 3.1 System Architecture | 6 |
+| **4** | **CHAPTER-4: IMPLEMENTATION AND TESTING** | **8** |
+| | 4.1 Flowchart | 8 |
+| | 4.2 Testing and Verification | 10 |
+| **5** | **CHAPTER-5: CONCLUSION AND FUTURE SCOPE** | **11** |
+| | 5.1 Conclusion | 11 |
+| | 5.2 Future Scope | 11 |
+| **6** | **REFERENCES** | **12** |
 
 ---
 
@@ -77,23 +71,9 @@ SQLGuard solves these limitations through a hybrid architecture:
 
 ## CHAPTER-3: SYSTEM DESIGN
 
-### 3.1 System Requirements
+### 3.1 System Architecture
 
-#### 3.1.1 Hardware Requirements
-- **Processor:** Dual-core 2.0 GHz x86-64 or ARM64 processor (Intel Core i3/i5, AMD Ryzen, Apple Silicon).
-- **RAM:** Minimum 4 GB RAM (8 GB recommended for development).
-- **Storage:** 500 MB free hard disk space.
-- **Network:** Standard broadband internet connection for deployment.
-
-#### 3.1.2 Software Requirements
-- **Operating System:** Linux (Ubuntu 22.04+), macOS, or Windows 10/11 with WSL2.
-- **Runtime Environment:** Node.js v20.x or v22.x, NPM v10.x.
-- **Development Language:** JavaScript (ES6+), Python 3.12 (Model Training).
-- **Core Frameworks:** Next.js 15, React 19, Tailwind CSS.
-- **ML Libraries:** Scikit-Learn 1.9, NumPy 2.5 (Offline training only).
-- **Edge Deployment:** Wrangler CLI 3.x / Cloudflare Workers.
-
-### 3.2 System Architecture
+The architecture routes untrusted inputs simultaneously through heuristic pattern matching and edge machine learning evaluation to make an autonomous enforcement decision:
 
 ```
                  +--------------------------------+
@@ -136,35 +116,13 @@ SQLGuard solves these limitations through a hybrid architecture:
                  +--------------------------------+
 ```
 
-### 3.3 Module Description
-1. **SQL Detector Module (`SQLDetectorView.jsx`):**
-   - Clean 2-tab console.
-   - **Tab 1 (Query Test):** Accepts any SQL payload, executes dual-engine evaluation, and renders the WAF verdict, ML probability, risk score, matched signatures, and parsed token stream.
-   - **Tab 2 (Detectors List):** Displays all 12 detection patterns with toggle controls, regex signatures, severity ratings, and 1-click test triggers.
-2. **Machine Learning Inference Module (`mlModel.js`):**
-   - Executes mathematically equivalent Logistic Regression inference in pure JavaScript.
-   - Computes dense domain features, scales using training set statistics, evaluates character TF-IDF n-grams, and calculates sigmoid probability $P(\text{SQLi})$.
-3. **Lexical Decomposer Module (`lexer.js`):**
-   - Breaks SQL input into typed tokens (`SQL_KEYWORD`, `SQL_COMMENT`, `STRING_LITERAL`, `OPERATOR_PUNCT`).
-   - Computes Shannon entropy: $H(X) = -\sum P(x) \log_2 P(x)$.
-4. **WAF Telemetry Bus (`store.js`):**
-   - In-memory and local storage backed event bus logging client IP, timestamp, target app, HTTP status, and rule triggers.
-5. **Demonstration Applications (`DemoAppsHub.jsx`):**
-   - ApexPortal: Simulates corporate identity SSO authentication.
-   - ShopSphere: Simulates an e-commerce catalog search filter.
-   - MedVault: Simulates an electronic health record patient lookup.
-
 ---
 
 ## CHAPTER-4: IMPLEMENTATION AND TESTING
 
-### 4.1 Experimental Setup
-- **Training Environment:** Ubuntu Linux 6.8 kernel, Python 3.12.3 virtual environment, Scikit-Learn 1.9.1.
-- **Dataset Size:** 724 labeled samples (456 malicious injection vectors, 268 benign queries and parameters).
-- **Feature Vector:** 11 dense domain features + 45 character n-gram TF-IDF components.
-- **Runtime Environment:** Next.js 15.5.2 client-side edge runtime, Chrome 130 DevTools.
+### 4.1 Flowchart
 
-### 4.2 Flowchart
+The flowchart outlines the end-to-end evaluation flow from input ingestion to verdict enforcement:
 
 ```
                  [ Start: Query Received ]
@@ -200,21 +158,9 @@ SQLGuard solves these limitations through a hybrid architecture:
                           [ End ]
 ```
 
-### 4.3 Screenshots and Description
-- **Screenshot 1 — Query Test Console:**
-  - Displays the query textarea with quick test payload chips (`' OR 1=1 --`, `admin'`, `UNION SELECT`).
-  - Below the input, the Dual-Engine banner displays `WAF BLOCKED (403)` alongside `ML Model: SQLi 100.0% (0.2ms)`.
-  - The metrics row highlights Risk Tier (Critical), Entropy (3.38 bits), and Token Count (6).
-  - ML Predictive Feature Attribution chips display exact weight contributions (`single quotes (+7.15)`, `has tautology (+3.67)`).
-- **Screenshot 2 — Detectors List:**
-  - Displays interactive rows for all 12 pattern detectors (`Tautology Attack`, `UNION SELECT`, `Stacked Query`, `Time-based Blind SQLi`, etc.).
-  - Includes toggle switches to disable individual rules, exact regex code blocks, and a `Test` button to load example payloads directly into the tester.
-- **Screenshot 3 — Live Traffic Stream:**
-  - Tabular telemetry grid tracking all captured requests, timestamps, client IPs, endpoints, target apps, risk scores, and verdicts.
-- **Screenshot 4 — Protected Demo Apps:**
-  - Three minimal cards for ApexPortal (`auth.apex-corp.internal`), ShopSphere (`store.shopsphere.io`), and MedVault (`ehr.stjude-health.internal`) with direct launch links.
+### 4.2 Testing and Verification
 
-### 4.4 Testing
+The system was verified against both known SQL injection signatures and benign operational queries:
 
 | Test Case ID | Test Input Payload | Expected Verdict | WAF Rule Result | ML Probability | Status |
 | :---: | :--- | :---: | :---: | :---: | :---: |
@@ -233,7 +179,7 @@ SQLGuard solves these limitations through a hybrid architecture:
 ## CHAPTER-5: CONCLUSION AND FUTURE SCOPE
 
 ### 5.1 Conclusion
-SQLGuard delivers a high-performance, dual-engine solution for SQL injection detection and mitigation. By combining deterministic heuristic rules with a lightweight edge Machine Learning model, the system achieves:
+SQLGuard delivers a high-performance, dual-engine solution for SQL injection detection and mitigation:
 1. **High Detection Rate:** 99.31% accuracy and 100% recall on injection attack vectors.
 2. **Sub-Millisecond Speed:** Model evaluation completes in under 0.2 milliseconds directly within the browser/edge runtime.
 3. **Evasion Resilience:** Successfully detects and mitigates comment-fragmented, scientific-notation, and character-encoded evasion payloads.
