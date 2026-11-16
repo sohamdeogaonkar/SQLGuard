@@ -7,56 +7,52 @@ import {
   Zap,
   Trash2,
   Terminal,
-  Activity,
-  Layers,
-  Binary,
   Check,
   Flame,
   SlidersHorizontal,
-  AlertTriangle,
+  Play,
+  RotateCcw,
+  Search,
+  CheckCircle2,
+  XCircle,
 } from 'lucide-react';
-import { detectSQLInjection, getDisabledRuleIds } from '../lib/detector';
+import {
+  detectSQLInjection,
+  getDisabledRuleIds,
+  setRuleEnabled,
+  toggleAllRules,
+} from '../lib/detector';
 import { analyzeASTMutation } from '../lib/lexer';
 import { recordInspection } from '../lib/store';
 import { SQL_PATTERNS } from '../lib/patterns';
 
-const PRESET_PAYLOADS = [
-  {
-    category: 'Common Attacks',
-    items: [
-      { label: "Tautology (' OR 1=1)", value: "' OR 1=1 --" },
-      { label: "Auth Bypass (admin')", value: "admin' OR '1'='1' --" },
-      { label: "UNION Exfil", value: "' UNION SELECT username, password FROM users --" },
-      { label: "Stacked DROP", value: "'; DROP TABLE users; --" },
-      { label: "Time-based Blind", value: "' OR SLEEP(5) --" },
-    ],
-  },
-  {
-    category: 'Evasion & Obfuscation',
-    items: [
-      { label: "Comment Fragmentation", value: "admin'/**/OR/**/1=1#" },
-      { label: "Scientific Notation", value: "' OR 1e0=1e0 --" },
-      { label: "Bitwise Logic", value: "' OR (1^0)=1 --" },
-      { label: "CHAR Encoding", value: "' OR CHAR(49)=CHAR(49) --" },
-      { label: "Newline Splitting", value: "admin'\nOR\n'1'='1" },
-    ],
-  },
-  {
-    category: 'Safe / Benign',
-    items: [
-      { label: "Standard Username", value: "sarah.jenkins@apexcorp.internal" },
-      { label: "Search Query", value: "ergonomic mechanical keyboard" },
-      { label: "Numeric ID", value: "48201" },
-    ],
-  },
+const QUICK_PAYLOADS = [
+  { label: "' OR 1=1 --", value: "' OR 1=1 --" },
+  { label: "admin' OR '1'='1' --", value: "admin' OR '1'='1' --" },
+  { label: "UNION SELECT", value: "' UNION SELECT username, password FROM users --" },
+  { label: "'; DROP TABLE", value: "'; DROP TABLE users; --" },
+  { label: "SLEEP(5)", value: "' OR SLEEP(5) --" },
+  { label: "admin'/**/OR/**/1=1#", value: "admin'/**/OR/**/1=1#" },
+  { label: "1e0=1e0", value: "' OR 1e0=1e0 --" },
+  { label: "(1^0)=1", value: "' OR (1^0)=1 --" },
+  { label: "CHAR(49)", value: "' OR CHAR(49)=CHAR(49) --" },
+  { label: "admin (Safe)", value: "admin" },
+  { label: "sarah@apex.com (Safe)", value: "sarah.jenkins@apexcorp.internal" },
 ];
 
-export default function SQLDetectorView({ onLogRecorded, initialQuery, onNavigateToRules }) {
+export default function SQLDetectorView({ onLogRecorded, initialQuery }) {
+  // 2-tab layout: 'test' | 'rules'
+  const [activeTab, setActiveTab] = useState('test');
   const [query, setQuery] = useState(initialQuery || "admin' OR '1'='1' --");
   const [result, setResult] = useState(null);
   const [lexerData, setLexerData] = useState(null);
   const [recordedNotice, setRecordedNotice] = useState(false);
-  const [disabledCount, setDisabledCount] = useState(0);
+  const [disabledIds, setDisabledIds] = useState([]);
+  const [search, setSearch] = useState('');
+
+  const refreshRules = () => {
+    setDisabledIds(getDisabledRuleIds());
+  };
 
   const runDetection = useCallback((inputToTest) => {
     const text = inputToTest !== undefined ? inputToTest : query;
@@ -71,9 +67,7 @@ export default function SQLDetectorView({ onLogRecorded, initialQuery, onNavigat
 
     setResult(det);
     setLexerData(lex);
-    setDisabledCount(det.disabledCount || 0);
 
-    // Record into WAF Telemetry Store
     recordInspection({
       targetApp: 'SQLDetector',
       targetHost: 'console.sqlguard.internal',
@@ -85,12 +79,11 @@ export default function SQLDetectorView({ onLogRecorded, initialQuery, onNavigat
     });
 
     onLogRecorded?.();
-
     setRecordedNotice(true);
-    setTimeout(() => setRecordedNotice(false), 2000);
+    setTimeout(() => setRecordedNotice(false), 1500);
   }, [query, onLogRecorded]);
 
-  // Sync when initialQuery changes
+  // Sync initial query
   useEffect(() => {
     if (initialQuery !== undefined && initialQuery !== query) {
       setQuery(initialQuery);
@@ -98,13 +91,13 @@ export default function SQLDetectorView({ onLogRecorded, initialQuery, onNavigat
     }
   }, [initialQuery]);
 
-  // Run initial detection and listen to rule changes
+  // Initial detection and rule listener
   useEffect(() => {
+    refreshRules();
     runDetection(query);
-    setDisabledCount(getDisabledRuleIds().length);
 
     const handleRulesChanged = () => {
-      setDisabledCount(getDisabledRuleIds().length);
+      refreshRules();
       runDetection(query);
     };
 
@@ -117,302 +110,357 @@ export default function SQLDetectorView({ onLogRecorded, initialQuery, onNavigat
     runDetection(val);
   };
 
-  const handleKeyDown = (e) => {
-    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-      e.preventDefault();
-      runDetection();
-    }
+  const handleToggleRule = (ruleId) => {
+    const isCurrentlyDisabled = disabledIds.includes(ruleId);
+    setRuleEnabled(ruleId, isCurrentlyDisabled);
+    refreshRules();
+    runDetection(query);
   };
 
+  const handleTestInTab = (examplePayload) => {
+    setQuery(examplePayload);
+    setActiveTab('test');
+    runDetection(examplePayload);
+  };
+
+  const activeCount = SQL_PATTERNS.length - disabledIds.length;
+
+  const filteredPatterns = SQL_PATTERNS.filter((p) => {
+    if (!search.trim()) return true;
+    const q = search.toLowerCase();
+    return (
+      p.name.toLowerCase().includes(q) ||
+      p.id.toLowerCase().includes(q) ||
+      p.example.toLowerCase().includes(q) ||
+      p.regex.toString().toLowerCase().includes(q)
+    );
+  });
+
   return (
-    <div className="space-y-6 max-w-5xl font-sans animate-in fade-in duration-150">
-      {/* View Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-zinc-800">
-        <div>
-          <h2 className="text-base font-bold text-zinc-100 font-mono uppercase tracking-wide">
-            SQL Injection Detection Engine
-          </h2>
-          <p className="text-xs text-zinc-400 font-sans mt-0.5">
-            Enter any SQL query, HTTP parameter, or raw payload to test against the WAF detection rules and lexical analyzer.
-          </p>
+    <div className="space-y-4 max-w-5xl font-sans animate-in fade-in duration-150">
+      {/* 2-Tab Switcher */}
+      <div className="flex items-center justify-between border-b border-zinc-800 pb-2">
+        <div className="flex items-center gap-1 bg-zinc-900 p-1 rounded-lg border border-zinc-800">
+          <button
+            onClick={() => setActiveTab('test')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-mono font-medium transition-all ${
+              activeTab === 'test'
+                ? 'bg-zinc-800 text-zinc-100 shadow-sm font-semibold'
+                : 'text-zinc-400 hover:text-zinc-200'
+            }`}
+          >
+            <Zap className="h-3.5 w-3.5 text-amber-400" />
+            <span>Query Test</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('rules')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-mono font-medium transition-all ${
+              activeTab === 'rules'
+                ? 'bg-zinc-800 text-zinc-100 shadow-sm font-semibold'
+                : 'text-zinc-400 hover:text-zinc-200'
+            }`}
+          >
+            <SlidersHorizontal className="h-3.5 w-3.5 text-emerald-400" />
+            <span>Detectors List ({activeCount}/{SQL_PATTERNS.length})</span>
+          </button>
         </div>
 
-        <div className="flex items-center gap-3">
-          {/* Rules status badge & button */}
-          {onNavigateToRules && (
-            <button
-              onClick={onNavigateToRules}
-              className={`flex items-center gap-1.5 rounded border px-2.5 py-1 text-xs font-mono transition-colors ${
-                disabledCount > 0
-                  ? 'border-amber-500/40 bg-amber-500/10 text-amber-300 hover:bg-amber-500/20'
-                  : 'border-zinc-800 bg-zinc-900 text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100'
-              }`}
-            >
-              <SlidersHorizontal className="h-3 w-3 text-amber-400" />
-              <span>
-                {SQL_PATTERNS.length - disabledCount}/{SQL_PATTERNS.length} Rules Active
-              </span>
-              {disabledCount > 0 && (
-                <span className="rounded bg-amber-500/20 px-1 text-[10px] font-bold text-amber-400">
-                  {disabledCount} OFF
-                </span>
-              )}
-            </button>
-          )}
-
-          {recordedNotice && (
-            <div className="flex items-center gap-1.5 rounded bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 text-xs font-mono text-emerald-400 animate-in fade-in duration-150">
-              <Check className="h-3.5 w-3.5" />
-              <span>Logged to WAF Stream</span>
-            </div>
-          )}
-        </div>
+        {recordedNotice && (
+          <div className="flex items-center gap-1 text-[11px] font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded">
+            <Check className="h-3 w-3" />
+            <span>Logged</span>
+          </div>
+        )}
       </div>
 
-      {/* Preset Payloads Bar */}
-      <div className="space-y-2">
-        <span className="text-[10px] font-mono uppercase tracking-wider text-zinc-500 font-bold block">
-          Quick Test Payloads:
-        </span>
-        <div className="flex flex-wrap gap-2">
-          {PRESET_PAYLOADS.map((group) =>
-            group.items.map((item) => (
+      {/* ========================================================= */}
+      {/* TAB 1: QUERY TEST */}
+      {/* ========================================================= */}
+      {activeTab === 'test' && (
+        <div className="space-y-4 animate-in fade-in duration-150">
+          {/* Quick Payloads Chips */}
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="text-[10px] font-mono uppercase text-zinc-400 font-semibold mr-1">
+              Presets:
+            </span>
+            {QUICK_PAYLOADS.map((item) => (
               <button
                 key={item.label}
                 onClick={() => handlePresetClick(item.value)}
-                className={`rounded border px-2.5 py-1 text-xs font-mono transition-colors ${
+                className={`rounded border px-2 py-0.5 text-[11px] font-mono transition-colors ${
                   query === item.value
-                    ? 'border-amber-500/50 bg-amber-500/10 text-amber-300 font-semibold'
-                    : 'border-zinc-800 bg-zinc-900/80 text-zinc-400 hover:text-zinc-200 hover:border-zinc-700'
+                    ? 'border-amber-500/60 bg-amber-500/10 text-amber-300 font-bold'
+                    : 'border-zinc-800 bg-zinc-900/70 text-zinc-400 hover:text-zinc-200 hover:border-zinc-700'
                 }`}
               >
                 {item.label}
               </button>
-            ))
-          )}
-        </div>
-      </div>
+            ))}
+          </div>
 
-      {/* Query Input Box */}
-      <div className="space-y-2">
-        <div className="flex items-center justify-between text-xs font-mono">
-          <span className="text-zinc-400 font-semibold">SQL QUERY / INPUT PAYLOAD:</span>
-          <span className="text-zinc-500 text-[11px]">[Ctrl + Enter to Run]</span>
-        </div>
+          {/* Query Input */}
+          <div className="rounded-xl border border-zinc-800 bg-zinc-950 p-2.5 focus-within:border-amber-500/50">
+            <textarea
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                  e.preventDefault();
+                  runDetection();
+                }
+              }}
+              rows={2}
+              placeholder="Enter SQL expression..."
+              className="w-full bg-transparent p-1.5 text-xs font-mono text-zinc-100 placeholder-zinc-600 focus:outline-none resize-none"
+            />
 
-        <div className="relative rounded-xl border border-zinc-800 bg-zinc-950 p-2 focus-within:border-amber-500/50 focus-within:ring-1 focus-within:ring-amber-500/20">
-          <textarea
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={handleKeyDown}
-            rows={3}
-            placeholder="Enter SQL expression, e.g. ' OR 1=1 -- or SELECT * FROM users..."
-            className="w-full bg-transparent p-2 text-xs font-mono text-zinc-100 placeholder-zinc-600 focus:outline-none resize-none"
-          />
-
-          <div className="flex items-center justify-between pt-2 border-t border-zinc-900 px-2">
-            <span className="font-mono text-[10px] text-zinc-500">
-              Length: {query.length} chars
-            </span>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => {
-                  setQuery('');
-                  setResult(null);
-                  setLexerData(null);
-                }}
-                className="flex items-center gap-1.5 rounded px-2.5 py-1 text-xs font-mono text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900 transition-colors"
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-                <span>Clear</span>
-              </button>
-              <button
-                onClick={() => runDetection()}
-                className="flex items-center gap-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-zinc-950 font-semibold px-4 py-1.5 text-xs font-mono transition-colors shadow-sm"
-              >
-                <Zap className="h-3.5 w-3.5 fill-current" />
-                <span>Analyze Query</span>
-              </button>
+            <div className="flex items-center justify-between pt-2 border-t border-zinc-900">
+              <span className="text-[10px] font-mono text-zinc-500">
+                {query.length} chars
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    setQuery('');
+                    setResult(null);
+                    setLexerData(null);
+                  }}
+                  className="flex items-center gap-1 rounded px-2 py-1 text-xs font-mono text-zinc-400 hover:text-zinc-200 transition-colors"
+                >
+                  <Trash2 className="h-3 w-3" />
+                  <span>Clear</span>
+                </button>
+                <button
+                  onClick={() => runDetection()}
+                  className="flex items-center gap-1.5 rounded bg-amber-500 hover:bg-amber-400 text-zinc-950 font-semibold px-3 py-1 text-xs font-mono transition-colors shadow-sm"
+                >
+                  <Zap className="h-3 w-3 fill-current" />
+                  <span>Analyze</span>
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      </div>
 
-      {/* Detection Results */}
-      {result && (
-        <div className="space-y-4">
-          {/* Main Verdict Banner */}
-          <div
-            className={`rounded-xl border p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 font-mono ${
-              result.isMalicious
-                ? 'border-rose-500/30 bg-rose-500/10 text-rose-300'
-                : 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300'
-            }`}
-          >
-            <div className="flex items-start gap-3">
+          {/* Results Block */}
+          {result && (
+            <div className="space-y-3 font-mono">
+              {/* Verdict Banner */}
               <div
-                className={`p-2 rounded-lg mt-0.5 ${
-                  result.isMalicious ? 'bg-rose-500/20 text-rose-400' : 'bg-emerald-500/20 text-emerald-400'
+                className={`rounded-lg border px-3.5 py-2.5 flex items-center justify-between text-xs font-mono ${
+                  result.isMalicious
+                    ? 'border-rose-500/30 bg-rose-500/10 text-rose-300'
+                    : 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300'
                 }`}
               >
-                {result.isMalicious ? (
-                  <ShieldAlert className="h-5 w-5" />
-                ) : (
-                  <ShieldCheck className="h-5 w-5" />
-                )}
-              </div>
-              <div className="space-y-0.5">
                 <div className="flex items-center gap-2">
-                  <span className="text-sm font-bold tracking-tight">
-                    {result.isMalicious ? 'HTTP 403 FORBIDDEN — SQL INJECTION BLOCKED' : 'HTTP 200 OK — SAFE INPUT ALLOWED'}
+                  {result.isMalicious ? (
+                    <ShieldAlert className="h-4 w-4 text-rose-400 shrink-0" />
+                  ) : (
+                    <ShieldCheck className="h-4 w-4 text-emerald-400 shrink-0" />
+                  )}
+                  <span className="font-bold text-xs">
+                    {result.isMalicious ? 'BLOCKED (HTTP 403)' : 'ALLOWED (HTTP 200)'}
+                  </span>
+                  <span className="text-zinc-500 text-[11px]">—</span>
+                  <span className="text-zinc-300 text-[11px]">
+                    {result.matches.length > 0
+                      ? `Matched ${result.matches.length} rule: ${result.matches[0].name}`
+                      : 'No injection pattern detected'}
                   </span>
                 </div>
-                <p className="text-xs font-sans text-zinc-300 leading-relaxed">
-                  {result.explanation}
-                </p>
-              </div>
-            </div>
 
-            <div className="shrink-0 flex sm:flex-col items-center sm:items-end justify-between sm:justify-center border-t sm:border-t-0 sm:border-l border-zinc-800 pt-2 sm:pt-0 sm:pl-4">
-              <span className="text-[10px] text-zinc-500 uppercase">WAF Verdict</span>
-              <span
-                className={`text-sm font-bold ${
-                  result.isMalicious ? 'text-rose-400' : 'text-emerald-400'
-                }`}
-              >
-                {result.isMalicious ? 'BLOCKED' : 'ALLOWED'}
-              </span>
-            </div>
-          </div>
-
-          {/* Telemetry Metrics Row */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 font-mono text-xs">
-            {/* Risk Score */}
-            <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-3.5 space-y-1.5">
-              <div className="flex items-center justify-between text-[10px] text-zinc-500 uppercase">
-                <span>Risk Score</span>
-                <Flame className={`h-3 w-3 ${result.riskScore > 50 ? 'text-rose-400' : 'text-emerald-400'}`} />
+                <div className="flex items-center gap-3">
+                  <span className="text-[11px] text-zinc-400">
+                    Risk: <strong className={result.riskScore > 50 ? 'text-rose-400' : 'text-emerald-400'}>{result.riskScore}/100</strong>
+                  </span>
+                </div>
               </div>
-              <div className="flex items-baseline gap-1.5">
-                <span className={`text-xl font-bold ${result.riskScore > 50 ? 'text-rose-400' : 'text-emerald-400'}`}>
-                  {result.riskScore}
-                </span>
-                <span className="text-zinc-500 text-[10px]">/ 100</span>
-              </div>
-              <div className="h-1.5 w-full rounded-full bg-zinc-800 overflow-hidden">
-                <div
-                  className={`h-full transition-all duration-300 ${
-                    result.riskScore >= 75 ? 'bg-rose-500' : result.riskScore >= 35 ? 'bg-amber-500' : 'bg-emerald-500'
-                  }`}
-                  style={{ width: `${result.riskScore}%` }}
-                />
-              </div>
-            </div>
 
-            {/* Severity Level */}
-            <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-3.5 space-y-1">
-              <span className="text-[10px] text-zinc-500 uppercase block">Severity Tier</span>
-              <div className="text-lg font-bold text-zinc-100 uppercase">
-                {result.level?.label || 'SAFE'}
+              {/* Compact Metrics Row */}
+              <div className="grid grid-cols-3 gap-2 text-xs">
+                <div className="rounded-lg border border-zinc-800 bg-zinc-900/40 px-3 py-2 flex items-center justify-between">
+                  <span className="text-zinc-500 text-[10px] uppercase">Risk Tier</span>
+                  <span className={`font-bold ${result.riskScore > 50 ? 'text-rose-400' : 'text-emerald-400'}`}>
+                    {result.level?.label || 'Safe'}
+                  </span>
+                </div>
+                <div className="rounded-lg border border-zinc-800 bg-zinc-900/40 px-3 py-2 flex items-center justify-between">
+                  <span className="text-zinc-500 text-[10px] uppercase">Entropy</span>
+                  <span className="font-bold text-zinc-200">
+                    {lexerData?.entropy ?? 0} <span className="text-[9px] text-zinc-500 font-normal">bits</span>
+                  </span>
+                </div>
+                <div className="rounded-lg border border-zinc-800 bg-zinc-900/40 px-3 py-2 flex items-center justify-between">
+                  <span className="text-zinc-500 text-[10px] uppercase">Tokens</span>
+                  <span className="font-bold text-zinc-200">{lexerData?.tokenCount ?? 0}</span>
+                </div>
               </div>
-              <span className="text-[10px] text-zinc-500 block">
-                {result.matches.length} Rule Trigger(s)
-              </span>
-            </div>
 
-            {/* Shannon Entropy */}
-            <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-3.5 space-y-1">
-              <span className="text-[10px] text-zinc-500 uppercase block">Shannon Entropy</span>
-              <div className="flex items-baseline gap-1">
-                <span className="text-lg font-bold text-zinc-100">
-                  {lexerData?.entropy ?? 0}
-                </span>
-                <span className="text-[10px] text-zinc-500">bits/char</span>
-              </div>
-              <span className="text-[10px] text-zinc-400 block truncate">
-                {lexerData?.entropyVerdict || 'Normal distribution'}
-              </span>
-            </div>
-
-            {/* Token Stream Count */}
-            <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-3.5 space-y-1">
-              <span className="text-[10px] text-zinc-500 uppercase block">Tokens Decomposed</span>
-              <div className="text-lg font-bold text-zinc-100">
-                {lexerData?.tokenCount ?? 0}
-              </div>
-              <span className="text-[10px] text-zinc-400 block truncate">
-                {lexerData?.grammarVerdict || 'Clean'}
-              </span>
-            </div>
-          </div>
-
-          {/* Matched Signatures Details */}
-          <div className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-4 space-y-3 font-mono">
-            <div className="flex items-center justify-between pb-2 border-b border-zinc-800">
-              <span className="text-xs uppercase font-semibold text-zinc-200">
-                Matched Detection Rules ({result.matches.length})
-              </span>
-              <span className="text-[10px] text-zinc-500">WAF SIGNATURE SET</span>
-            </div>
-
-            {result.matches.length === 0 ? (
-              <p className="text-xs text-zinc-500 py-2 font-sans">
-                No known attack signatures triggered. Input evaluated as clean benign query.
-              </p>
-            ) : (
-              <div className="space-y-2">
-                {result.matches.map((m, idx) => (
-                  <div
-                    key={idx}
-                    className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 rounded-lg border border-zinc-800/80 bg-zinc-950 p-3"
-                  >
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-bold text-zinc-200">{m.name}</span>
-                        <span className="rounded bg-zinc-800 border border-zinc-700 px-1.5 py-0.2 text-[9px] text-zinc-400">
-                          {m.patternId}
-                        </span>
+              {/* Matched Rules List */}
+              {result.matches.length > 0 && (
+                <div className="rounded-lg border border-zinc-800 bg-zinc-900/30 p-3 space-y-1.5">
+                  <span className="text-[10px] uppercase font-semibold text-zinc-400 block">
+                    Matched Rules:
+                  </span>
+                  <div className="space-y-1.5">
+                    {result.matches.map((m, idx) => (
+                      <div
+                        key={idx}
+                        className="flex items-center justify-between rounded border border-zinc-800 bg-zinc-950 px-2.5 py-1.5 text-xs"
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-zinc-200">{m.name}</span>
+                          <span className="text-[10px] text-zinc-500">({m.patternId})</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-amber-300 text-[11px]">
+                            Matched: <code className="font-bold">{m.matched}</code>
+                          </span>
+                          <span className="rounded bg-rose-500/10 border border-rose-500/20 px-1.5 py-0.2 text-[10px] text-rose-400 font-bold">
+                            Sev {m.severity}/10
+                          </span>
+                        </div>
                       </div>
-                      <p className="text-xs font-sans text-zinc-400">{m.description}</p>
-                    </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
-                    <div className="flex items-center gap-3 shrink-0">
-                      <div className="rounded bg-amber-500/10 border border-amber-500/20 px-2 py-1 text-xs text-amber-300 font-mono">
-                        Matched: <span className="font-bold underline">{m.matched}</span>
+              {/* Parsed SQL Tokens */}
+              {lexerData?.tokens && lexerData.tokens.length > 0 && (
+                <div className="rounded-lg border border-zinc-800 bg-zinc-900/30 p-3 space-y-1.5">
+                  <span className="text-[10px] uppercase font-semibold text-zinc-400 block">
+                    Tokens:
+                  </span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {lexerData.tokens.map((tok, i) => (
+                      <div
+                        key={i}
+                        className={`flex items-center gap-1 rounded border px-2 py-0.5 text-[11px] ${
+                          tok.risk === 'CRITICAL' || tok.risk === 'HIGH'
+                            ? 'border-rose-500/30 bg-rose-500/10 text-rose-300'
+                            : 'border-zinc-800 bg-zinc-950 text-zinc-300'
+                        }`}
+                      >
+                        <span className="text-[9px] text-zinc-500 uppercase">{tok.type}:</span>
+                        <span className="font-bold">{tok.value}</span>
                       </div>
-                      <span className="text-xs font-bold text-rose-400 bg-rose-500/10 border border-rose-500/20 rounded px-2 py-0.5">
-                        Sev {m.severity}/10
-                      </span>
-                    </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Parsed SQL Tokens (Chips) */}
-          {lexerData?.tokens && lexerData.tokens.length > 0 && (
-            <div className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-4 space-y-2.5 font-mono">
-              <span className="text-xs uppercase font-semibold text-zinc-400 block">
-                Parsed SQL Token Decomposition:
-              </span>
-              <div className="flex flex-wrap gap-2">
-                {lexerData.tokens.map((tok, i) => (
-                  <div
-                    key={i}
-                    className={`flex items-center gap-1.5 rounded border px-2.5 py-1 text-xs ${
-                      tok.risk === 'CRITICAL' || tok.risk === 'HIGH'
-                        ? 'border-rose-500/40 bg-rose-500/10 text-rose-300'
-                        : 'border-zinc-800 bg-zinc-950 text-zinc-300'
-                    }`}
-                  >
-                    <span className="text-[9px] text-zinc-500 uppercase">{tok.type}:</span>
-                    <span className="font-bold">{tok.value}</span>
-                  </div>
-                ))}
-              </div>
+                </div>
+              )}
             </div>
           )}
+        </div>
+      )}
+
+      {/* ========================================================= */}
+      {/* TAB 2: DETECTORS LIST (ALL 12 PATTERNS & CONTROLS) */}
+      {/* ========================================================= */}
+      {activeTab === 'rules' && (
+        <div className="space-y-3 font-mono animate-in fade-in duration-150">
+          {/* Controls Bar */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-zinc-800/80">
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-zinc-300 font-bold">
+                {activeCount}/{SQL_PATTERNS.length} Active
+              </span>
+              <button
+                onClick={() => {
+                  toggleAllRules(true);
+                  refreshRules();
+                }}
+                className="text-[11px] rounded bg-zinc-800 px-2 py-0.5 text-zinc-300 hover:text-white"
+              >
+                Enable All
+              </button>
+              <button
+                onClick={() => {
+                  toggleAllRules(false);
+                  refreshRules();
+                }}
+                className="text-[11px] rounded bg-zinc-800 px-2 py-0.5 text-zinc-400 hover:text-white"
+              >
+                Disable All
+              </button>
+            </div>
+
+            <div className="relative w-full sm:w-60">
+              <Search className="absolute left-2.5 top-2 h-3.5 w-3.5 text-zinc-500" />
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search detectors..."
+                className="w-full rounded border border-zinc-800 bg-zinc-900/90 pl-8 pr-2.5 py-1 text-xs text-zinc-200 placeholder-zinc-500 focus:outline-none focus:border-amber-500/50"
+              />
+            </div>
+          </div>
+
+          {/* Compact Pattern Rows */}
+          <div className="space-y-1.5">
+            {filteredPatterns.map((pattern) => {
+              const isDisabled = disabledIds.includes(pattern.id);
+              return (
+                <div
+                  key={pattern.id}
+                  className={`rounded-lg border px-3 py-2 flex flex-col sm:flex-row sm:items-center justify-between gap-2 transition-all ${
+                    isDisabled
+                      ? 'border-zinc-800/50 bg-zinc-950/40 opacity-60'
+                      : 'border-zinc-800 bg-zinc-900/40 hover:border-zinc-700'
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    {/* Toggle */}
+                    <button
+                      onClick={() => handleToggleRule(pattern.id)}
+                      className={`relative inline-flex h-4 w-7 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                        !isDisabled ? 'bg-emerald-500' : 'bg-zinc-700'
+                      }`}
+                    >
+                      <span
+                        className={`pointer-events-none inline-block h-3 w-3 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                          !isDisabled ? 'translate-x-3' : 'translate-x-0'
+                        }`}
+                      />
+                    </button>
+
+                    <span className="font-bold text-xs text-zinc-200 truncate">
+                      {pattern.name}
+                    </span>
+                    <span className="text-[10px] text-zinc-500 hidden md:inline">
+                      ({pattern.id})
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0">
+                    <code className="text-[10px] text-zinc-400 bg-zinc-950 px-2 py-0.5 rounded border border-zinc-800 max-w-[200px] truncate">
+                      {pattern.regex.toString()}
+                    </code>
+
+                    <span
+                      className={`rounded px-1.5 py-0.2 text-[10px] font-bold ${
+                        pattern.severity >= 10
+                          ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+                          : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                      }`}
+                    >
+                      Sev {pattern.severity}
+                    </span>
+
+                    <button
+                      onClick={() => handleTestInTab(pattern.example)}
+                      className="flex items-center gap-1 rounded bg-zinc-800 hover:bg-zinc-700 px-2 py-0.5 text-[11px] text-zinc-200"
+                    >
+                      <Play className="h-2.5 w-2.5 fill-current text-amber-400" />
+                      <span>Test</span>
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
     </div>
