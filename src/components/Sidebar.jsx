@@ -3,18 +3,18 @@
 import {
   Shield,
   Activity,
-  Layers,
   FlaskConical,
   LayoutGrid,
   Cpu,
+  Terminal,
 } from 'lucide-react';
 
 export default function Sidebar({ activeTab, onTabChange }) {
   const navItems = [
-    { id: 'traffic', label: 'Live Traffic Stream', icon: Activity, badge: 'LIVE', shortcut: '1' },
-    { id: 'demos', label: 'Protected Demo Apps', icon: LayoutGrid, badge: '3 APPS', shortcut: '2' },
-    { id: 'simulator', label: 'How SQLi Works (Anatomy)', icon: Layers, badge: 'EXPL', shortcut: '3' },
-    { id: 'research', label: 'Evasion Research Matrix', icon: FlaskConical, shortcut: '4' },
+    { id: 'detector', label: 'SQL Detector', icon: Terminal, badge: 'CORE', shortcut: '1' },
+    { id: 'traffic', label: 'Live Traffic Stream', icon: Activity, badge: 'LIVE', shortcut: '2' },
+    { id: 'demos', label: 'Demo Apps', icon: LayoutGrid, shortcut: '3' },
+    { id: 'research', label: 'Evasion Benchmarks', icon: FlaskConical, shortcut: '4' },
   ];
 
   return (

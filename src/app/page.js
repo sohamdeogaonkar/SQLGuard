@@ -27,7 +27,7 @@ import Sidebar from '../components/Sidebar';
 import RequestInspector from '../components/RequestInspector';
 import CodeBlock from '../components/CodeBlock';
 import RiskBadge from '../components/RiskBadge';
-import ExecutionSimulator from '../components/ExecutionSimulator';
+import SQLDetectorView from '../components/SQLDetectorView';
 import DemoAppsHub from '../components/DemoAppsHub';
 import { getLogs, getStats, clearLogs, recordInspection } from '../lib/store';
 import { SQL_PATTERNS } from '../lib/patterns';
@@ -97,7 +97,7 @@ const RESEARCH_BENCHMARKS = [
 ];
 
 export default function SidebarDashboard() {
-  const [activeTab, setActiveTab] = useState('traffic'); // 'traffic' | 'lexer' | 'benchmark' | 'mitigation'
+  const [activeTab, setActiveTab] = useState('detector'); // 'detector' | 'traffic' | 'demos' | 'research'
   const [logs, setLogs] = useState([]);
   const [stats, setStats] = useState({ total: 0, blocked: 0, allowed: 0, blockRate: 0, byApp: {} });
   const [activeAppFilter, setActiveAppFilter] = useState('ALL');
@@ -138,9 +138,9 @@ export default function SidebarDashboard() {
         setSelectedLog(null);
         if (isInput) document.activeElement?.blur();
       } else if (!isInput) {
-        if (e.key === '1') setActiveTab('traffic');
-        if (e.key === '2') setActiveTab('demos');
-        if (e.key === '3') setActiveTab('simulator');
+        if (e.key === '1') setActiveTab('detector');
+        if (e.key === '2') setActiveTab('traffic');
+        if (e.key === '3') setActiveTab('demos');
         if (e.key === '4') setActiveTab('research');
       }
     };
@@ -186,9 +186,9 @@ export default function SidebarDashboard() {
           <div className="flex items-center gap-3">
             <span className="font-mono text-xs text-zinc-500 uppercase tracking-wider">CONSOLE /</span>
             <span className="text-xs font-semibold text-zinc-200 uppercase font-mono">
+              {activeTab === 'detector' && 'SQL INJECTION DETECTION ENGINE'}
               {activeTab === 'traffic' && 'LIVE TRAFFIC STREAM'}
-              {activeTab === 'demos' && 'PROTECTED DEMONSTRATION APPLICATIONS'}
-              {activeTab === 'simulator' && 'HOW SQL INJECTION WORKS (ANATOMY & AST)'}
+              {activeTab === 'demos' && 'DEMO APPS'}
               {activeTab === 'research' && 'ADVERSARIAL EVASION RESEARCH & LEXICAL LAB'}
             </span>
           </div>
@@ -224,7 +224,12 @@ export default function SidebarDashboard() {
 
         {/* Console Main Body */}
         <main className="p-6 flex-1 space-y-6">
-          {/* TAB 1: TRAFFIC STREAM */}
+          {/* TAB 1: SQL DETECTION ENGINE */}
+          {activeTab === 'detector' && (
+            <SQLDetectorView onLogRecorded={refreshData} />
+          )}
+
+          {/* TAB 2: TRAFFIC STREAM */}
           {activeTab === 'traffic' && (
             <div className="space-y-5 animate-in fade-in duration-150">
               {/* Filter Controls & Search */}
@@ -364,21 +369,14 @@ export default function SidebarDashboard() {
             </div>
           )}
 
-          {/* TAB 2: PROTECTED DEMONSTRATION APPLICATIONS HUB */}
+          {/* TAB 3: DEMO APPS */}
           {activeTab === 'demos' && (
             <div className="animate-in fade-in duration-150">
               <DemoAppsHub />
             </div>
           )}
 
-          {/* TAB 3: INTERACTIVE SQL INJECTION ANATOMY & AST EXECUTION SIMULATOR */}
-          {activeTab === 'simulator' && (
-            <div className="animate-in fade-in duration-150">
-              <ExecutionSimulator />
-            </div>
-          )}
-
-          {/* TAB 3: ADVERSARIAL EVASION RESEARCH & LEXICAL LAB */}
+          {/* TAB 4: ADVERSARIAL EVASION RESEARCH & LEXICAL LAB */}
           {activeTab === 'research' && (
             <div className="space-y-8 max-w-5xl animate-in fade-in duration-150">
               {/* Part 1: Adversarial Evasion Matrix */}
