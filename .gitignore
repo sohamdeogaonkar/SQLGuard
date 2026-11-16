@@ -9,3 +9,6 @@ out/
 .cloudflare/
 .agents/
 skills-lock.json
+.venv/
+__pycache__/
+scripts/data/
