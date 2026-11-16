@@ -12,10 +12,13 @@ import {
   Binary,
   Check,
   Flame,
+  SlidersHorizontal,
+  AlertTriangle,
 } from 'lucide-react';
-import { detectSQLInjection } from '../lib/detector';
+import { detectSQLInjection, getDisabledRuleIds } from '../lib/detector';
 import { analyzeASTMutation } from '../lib/lexer';
 import { recordInspection } from '../lib/store';
+import { SQL_PATTERNS } from '../lib/patterns';
 
 const PRESET_PAYLOADS = [
   {
@@ -48,11 +51,12 @@ const PRESET_PAYLOADS = [
   },
 ];
 
-export default function SQLDetectorView({ onLogRecorded }) {
-  const [query, setQuery] = useState("admin' OR '1'='1' --");
+export default function SQLDetectorView({ onLogRecorded, initialQuery, onNavigateToRules }) {
+  const [query, setQuery] = useState(initialQuery || "admin' OR '1'='1' --");
   const [result, setResult] = useState(null);
   const [lexerData, setLexerData] = useState(null);
   const [recordedNotice, setRecordedNotice] = useState(false);
+  const [disabledCount, setDisabledCount] = useState(0);
 
   const runDetection = useCallback((inputToTest) => {
     const text = inputToTest !== undefined ? inputToTest : query;
@@ -67,6 +71,7 @@ export default function SQLDetectorView({ onLogRecorded }) {
 
     setResult(det);
     setLexerData(lex);
+    setDisabledCount(det.disabledCount || 0);
 
     // Record into WAF Telemetry Store
     recordInspection({
@@ -85,9 +90,26 @@ export default function SQLDetectorView({ onLogRecorded }) {
     setTimeout(() => setRecordedNotice(false), 2000);
   }, [query, onLogRecorded]);
 
-  // Run initial detection on mount
+  // Sync when initialQuery changes
   useEffect(() => {
-    runDetection("admin' OR '1'='1' --");
+    if (initialQuery !== undefined && initialQuery !== query) {
+      setQuery(initialQuery);
+      runDetection(initialQuery);
+    }
+  }, [initialQuery]);
+
+  // Run initial detection and listen to rule changes
+  useEffect(() => {
+    runDetection(query);
+    setDisabledCount(getDisabledRuleIds().length);
+
+    const handleRulesChanged = () => {
+      setDisabledCount(getDisabledRuleIds().length);
+      runDetection(query);
+    };
+
+    window.addEventListener('sqlguard-rules-changed', handleRulesChanged);
+    return () => window.removeEventListener('sqlguard-rules-changed', handleRulesChanged);
   }, []);
 
   const handlePresetClick = (val) => {
@@ -115,12 +137,36 @@ export default function SQLDetectorView({ onLogRecorded }) {
           </p>
         </div>
 
-        {recordedNotice && (
-          <div className="flex items-center gap-1.5 rounded bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 text-xs font-mono text-emerald-400 animate-in fade-in duration-150">
-            <Check className="h-3.5 w-3.5" />
-            <span>Logged to WAF Stream</span>
-          </div>
-        )}
+        <div className="flex items-center gap-3">
+          {/* Rules status badge & button */}
+          {onNavigateToRules && (
+            <button
+              onClick={onNavigateToRules}
+              className={`flex items-center gap-1.5 rounded border px-2.5 py-1 text-xs font-mono transition-colors ${
+                disabledCount > 0
+                  ? 'border-amber-500/40 bg-amber-500/10 text-amber-300 hover:bg-amber-500/20'
+                  : 'border-zinc-800 bg-zinc-900 text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100'
+              }`}
+            >
+              <SlidersHorizontal className="h-3 w-3 text-amber-400" />
+              <span>
+                {SQL_PATTERNS.length - disabledCount}/{SQL_PATTERNS.length} Rules Active
+              </span>
+              {disabledCount > 0 && (
+                <span className="rounded bg-amber-500/20 px-1 text-[10px] font-bold text-amber-400">
+                  {disabledCount} OFF
+                </span>
+              )}
+            </button>
+          )}
+
+          {recordedNotice && (
+            <div className="flex items-center gap-1.5 rounded bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 text-xs font-mono text-emerald-400 animate-in fade-in duration-150">
+              <Check className="h-3.5 w-3.5" />
+              <span>Logged to WAF Stream</span>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Preset Payloads Bar */}

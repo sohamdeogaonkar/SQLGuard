@@ -1,6 +1,39 @@
 import { SQL_PATTERNS, RISK_LEVELS } from './patterns.js';
 
-export function detectSQLInjection(input) {
+export function getDisabledRuleIds() {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = localStorage.getItem('sqlguard_disabled_rules');
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function setRuleEnabled(ruleId, enabled) {
+  if (typeof window === 'undefined') return;
+  const disabled = getDisabledRuleIds();
+  let updated;
+  if (enabled) {
+    updated = disabled.filter((id) => id !== ruleId);
+  } else {
+    updated = Array.from(new Set([...disabled, ruleId]));
+  }
+  localStorage.setItem('sqlguard_disabled_rules', JSON.stringify(updated));
+  window.dispatchEvent(new CustomEvent('sqlguard-rules-changed', { detail: { disabled: updated } }));
+}
+
+export function toggleAllRules(enableAll) {
+  if (typeof window === 'undefined') return;
+  const updated = enableAll ? [] : SQL_PATTERNS.map((p) => p.id);
+  localStorage.setItem('sqlguard_disabled_rules', JSON.stringify(updated));
+  window.dispatchEvent(new CustomEvent('sqlguard-rules-changed', { detail: { disabled: updated } }));
+}
+
+export function detectSQLInjection(input, options = {}) {
+  const disabled = options.disabledRuleIds || getDisabledRuleIds();
+  const activePatterns = SQL_PATTERNS.filter((p) => !disabled.includes(p.id));
+
   if (!input || typeof input !== 'string' || input.trim() === '') {
     return {
       input: input || '',
@@ -10,6 +43,8 @@ export function detectSQLInjection(input) {
       isMalicious: false,
       explanation: 'Empty parameter payload.',
       timestamp: new Date().toISOString(),
+      disabledCount: disabled.length,
+      activeCount: activePatterns.length,
     };
   }
 
@@ -17,7 +52,7 @@ export function detectSQLInjection(input) {
   let totalSeverity = 0;
   let maxSeverity = 0;
 
-  for (const pattern of SQL_PATTERNS) {
+  for (const pattern of activePatterns) {
     const found = input.match(pattern.regex);
     if (found) {
       matches.push({
@@ -85,6 +120,8 @@ export function detectSQLInjection(input) {
     isMalicious,
     explanation,
     timestamp: new Date().toISOString(),
+    disabledCount: disabled.length,
+    activeCount: activePatterns.length,
   };
 }
 

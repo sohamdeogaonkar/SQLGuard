@@ -28,6 +28,7 @@ import RequestInspector from '../components/RequestInspector';
 import CodeBlock from '../components/CodeBlock';
 import RiskBadge from '../components/RiskBadge';
 import SQLDetectorView from '../components/SQLDetectorView';
+import DetectionRulesView from '../components/DetectionRulesView';
 import DemoAppsHub from '../components/DemoAppsHub';
 import { getLogs, getStats, clearLogs, recordInspection } from '../lib/store';
 import { SQL_PATTERNS } from '../lib/patterns';
@@ -97,7 +98,8 @@ const RESEARCH_BENCHMARKS = [
 ];
 
 export default function SidebarDashboard() {
-  const [activeTab, setActiveTab] = useState('detector'); // 'detector' | 'traffic' | 'demos' | 'research'
+  const [activeTab, setActiveTab] = useState('detector'); // 'detector' | 'rules' | 'traffic' | 'demos' | 'research'
+  const [detectorQuery, setDetectorQuery] = useState("admin' OR '1'='1' --");
   const [logs, setLogs] = useState([]);
   const [stats, setStats] = useState({ total: 0, blocked: 0, allowed: 0, blockRate: 0, byApp: {} });
   const [activeAppFilter, setActiveAppFilter] = useState('ALL');
@@ -139,9 +141,10 @@ export default function SidebarDashboard() {
         if (isInput) document.activeElement?.blur();
       } else if (!isInput) {
         if (e.key === '1') setActiveTab('detector');
-        if (e.key === '2') setActiveTab('traffic');
-        if (e.key === '3') setActiveTab('demos');
-        if (e.key === '4') setActiveTab('research');
+        if (e.key === '2') setActiveTab('rules');
+        if (e.key === '3') setActiveTab('traffic');
+        if (e.key === '4') setActiveTab('demos');
+        if (e.key === '5') setActiveTab('research');
       }
     };
 
@@ -187,6 +190,7 @@ export default function SidebarDashboard() {
             <span className="font-mono text-xs text-zinc-500 uppercase tracking-wider">CONSOLE /</span>
             <span className="text-xs font-semibold text-zinc-200 uppercase font-mono">
               {activeTab === 'detector' && 'SQL INJECTION DETECTION ENGINE'}
+              {activeTab === 'rules' && 'WAF DETECTION RULES & SIGNATURES'}
               {activeTab === 'traffic' && 'LIVE TRAFFIC STREAM'}
               {activeTab === 'demos' && 'DEMO APPS'}
               {activeTab === 'research' && 'ADVERSARIAL EVASION RESEARCH & LEXICAL LAB'}
@@ -226,10 +230,24 @@ export default function SidebarDashboard() {
         <main className="p-6 flex-1 space-y-6">
           {/* TAB 1: SQL DETECTION ENGINE */}
           {activeTab === 'detector' && (
-            <SQLDetectorView onLogRecorded={refreshData} />
+            <SQLDetectorView
+              onLogRecorded={refreshData}
+              initialQuery={detectorQuery}
+              onNavigateToRules={() => setActiveTab('rules')}
+            />
           )}
 
-          {/* TAB 2: TRAFFIC STREAM */}
+          {/* TAB 2: DETECTION RULES & SIGNATURES */}
+          {activeTab === 'rules' && (
+            <DetectionRulesView
+              onTestInDetector={(payload) => {
+                setDetectorQuery(payload);
+                setActiveTab('detector');
+              }}
+            />
+          )}
+
+          {/* TAB 3: TRAFFIC STREAM */}
           {activeTab === 'traffic' && (
             <div className="space-y-5 animate-in fade-in duration-150">
               {/* Filter Controls & Search */}

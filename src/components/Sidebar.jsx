@@ -7,14 +7,16 @@ import {
   LayoutGrid,
   Cpu,
   Terminal,
+  SlidersHorizontal,
 } from 'lucide-react';
 
 export default function Sidebar({ activeTab, onTabChange }) {
   const navItems = [
     { id: 'detector', label: 'SQL Detector', icon: Terminal, badge: 'CORE', shortcut: '1' },
-    { id: 'traffic', label: 'Live Traffic Stream', icon: Activity, badge: 'LIVE', shortcut: '2' },
-    { id: 'demos', label: 'Demo Apps', icon: LayoutGrid, shortcut: '3' },
-    { id: 'research', label: 'Evasion Benchmarks', icon: FlaskConical, shortcut: '4' },
+    { id: 'rules', label: 'Detection Rules', icon: SlidersHorizontal, badge: '12 RULES', shortcut: '2' },
+    { id: 'traffic', label: 'Live Traffic Stream', icon: Activity, badge: 'LIVE', shortcut: '3' },
+    { id: 'demos', label: 'Demo Apps', icon: LayoutGrid, shortcut: '4' },
+    { id: 'research', label: 'Evasion Benchmarks', icon: FlaskConical, shortcut: '5' },
   ];
 
   return (
@@ -40,7 +42,7 @@ export default function Sidebar({ activeTab, onTabChange }) {
             <span className="text-[10px] font-mono uppercase tracking-wider text-zinc-400 font-bold">
               Console Views
             </span>
-            <span className="text-[9px] font-mono text-zinc-600">[KEYS 1-4]</span>
+            <span className="text-[9px] font-mono text-zinc-600">[KEYS 1-5]</span>
           </div>
 
           {navItems.map((item) => {
